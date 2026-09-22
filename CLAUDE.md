@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Aptabase is an open-source privacy-first analytics platform for Mobile, Desktop, and Web apps. It's built as a hybrid .NET 8 backend with a React/TypeScript frontend, using a monolithic architecture where both frontend and backend code live in the `src/` directory.
 
+This repository is a **fork** of upstream `aptabase/aptabase`, maintained to add analytics to games made by MegaMiley Studio. Check the Gitea Wiki and Issues for what changes are planned.
+
+The repo has two remotes: `origin` (this fork) and `upstream` (`aptabase/aptabase` on GitHub, push disabled). See the Upstream Sync wiki page before merging upstream changes in.
+
 ## Tech Stack
 
 **Backend (.NET 8)**
@@ -242,3 +246,4 @@ Uses xUnit, Moq, and FluentAssertions.
 ### Adding an API Endpoint
 
 Controllers use attribute routing. Place in appropriate feature folder and register automatically via `builder.Services.AddControllers()`.
+

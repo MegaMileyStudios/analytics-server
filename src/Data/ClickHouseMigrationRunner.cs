@@ -30,7 +30,25 @@ public class ClickHouseMigrationRunner : IClickHouseMigrationRunner
         {
             var content = File.ReadAllText(file);
             _logger.LogDebug($"Executing ClickHouse migration: {file}");
-            _conn.Execute(content);
+            ExecuteWithRetry(content);
+        }
+    }
+
+    private void ExecuteWithRetry(string sql)
+    {
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                _conn.Execute(sql);
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                _logger.LogWarning(ex, "ClickHouse migration attempt {Attempt} failed, retrying", attempt);
+                Thread.Sleep(500 * attempt);
+            }
         }
     }
 }

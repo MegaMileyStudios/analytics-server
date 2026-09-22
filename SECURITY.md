@@ -1,6 +1,7 @@
 # Security
 
-Contact: [security@aptabase.com](mailto:security@aptabase.com)
+Contact: Fork owner: [miley@megamileystudios.com](mailto:miley@megamileystudios.com)
+         Aptabase: [security@aptabase.com](mailto:security@aptabase.com)
 
 Based on [https://supabase.com/.well-known/security.txt](https://supabase.com/.well-known/security.txt)
 
