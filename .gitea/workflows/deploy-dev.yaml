@@ -29,7 +29,7 @@ jobs:
           private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           transfers: |
             analytics-server.tar.gz | /opt/analytics/
-            deploy/docker-compose.dev.yml | /opt/analytics/docker-compose.yml
+            deploy/docker-compose.dev.yml | /opt/analytics/
 
       - name: Load image and restart stack
         uses: megamiley/ssh-command@main
@@ -39,6 +39,7 @@ jobs:
           private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           command: |
             cd /opt/analytics
+            mv -f docker-compose.dev.yml docker-compose.yml
             docker load -i analytics-server.tar.gz
             rm analytics-server.tar.gz
             docker compose up -d
