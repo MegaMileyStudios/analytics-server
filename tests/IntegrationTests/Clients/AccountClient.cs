@@ -16,12 +16,26 @@ public class AccountClient
 
     public async Task CreateAccount(string name, string email)
     {
-        var response = await _client.PostAsJsonAsync("/api/_auth/register", new { name, email });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        Exception? lastError = null;
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var response = await _client.PostAsJsonAsync("/api/_auth/register", new { name, email });
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var confirmUrl = await MailCatcher.GetLinkSentTo(email);
-        response = await _client.GetAsync(confirmUrl);
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+            try
+            {
+                var confirmUrl = await MailCatcher.GetLinkSentTo(email);
+                response = await _client.GetAsync(confirmUrl);
+                response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+                return;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
+        }
+
+        throw lastError!;
     }
 
     public async Task<Application> CreateApp(string name)

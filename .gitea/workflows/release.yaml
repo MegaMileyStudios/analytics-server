@@ -1,0 +1,29 @@
+name: Release
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+jobs:
+  mirror-github:
+    name: Mirror source to GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: megamiley/ssh-checkout@main
+        with:
+          ref: ${{ github.ref_name }}
+          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+
+      - name: Push to public GitHub mirror
+        env:
+          TOKEN: ${{ secrets.GHUB_MIRROR_TOKEN }}
+        run: |
+          git push "https://x-access-token:${TOKEN}@github.com/MegaMileyStudios/analytics-server.git" HEAD:main --force
+
+  # deploy-production:
+  #   Out of scope for now. When ready, add a job here that builds/deploys
+  #   the way deploy-dev.yaml does, but against PROD_SSH_HOST/PROD_SSH_USER/
+  #   PROD_SSH_PRIVATE_KEY and the production host, following
+  #   BallsyDropRelayServer/.gitea/workflows/deploy-prod.yaml's shape.

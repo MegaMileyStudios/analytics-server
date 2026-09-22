@@ -1,0 +1,44 @@
+name: Deploy to the dev NAS/Server
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: megamiley/ssh-checkout@main
+        with:
+          ref: ${{ github.ref_name }}
+          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+
+      - name: Build Docker image
+        run: docker build -t analytics-server:latest .
+
+      - name: Save image to archive
+        run: docker save analytics-server:latest | gzip > analytics-server.tar.gz
+
+      - name: Upload image + compose file to /opt/analytics
+        uses: megamiley/ssh-upload@main
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USER }}
+          private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          transfers: |
+            analytics-server.tar.gz | /opt/analytics/
+            deploy/docker-compose.dev.yml | /opt/analytics/docker-compose.yml
+
+      - name: Load image and restart stack
+        uses: megamiley/ssh-command@main
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USER }}
+          private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          command: |
+            cd /opt/analytics
+            docker load -i analytics-server.tar.gz
+            rm analytics-server.tar.gz
+            docker compose up -d

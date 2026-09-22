@@ -1,0 +1,83 @@
+name: Run Tests
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: aptabase
+          POSTGRES_PASSWORD: aptabase_pw
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      clickhouse:
+        image: clickhouse/clickhouse-server:23.8.4.69
+        env:
+          CLICKHOUSE_USER: aptabase
+          CLICKHOUSE_PASSWORD: aptabase_pw
+        options: >-
+          --health-cmd "wget -q -O- http://aptabase:aptabase_pw@localhost:8123/?query=SELECT%201 | grep -qx 1 || exit 1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mailcatcher:
+        image: dockage/mailcatcher:0.8.2
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:1080/ || exit 1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout Code
+        uses: megamiley/ssh-checkout@main
+        with:
+          ref: ${{ github.ref_name }}
+          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+
+      - name: Setup .NET SDK 10
+        shell: bash
+        run: |
+          if command -v dotnet >/dev/null 2>&1 && dotnet --version | grep -q '^10\.'; then
+            echo "dotnet already present: $(dotnet --version)"
+          else
+            curl -fsSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+            bash dotnet-install.sh --channel 10.0 --install-dir "$HOME/.dotnet"
+            echo "$HOME/.dotnet" >> "$GITHUB_PATH"
+          fi
+
+      - name: Run Unit Tests
+        run: dotnet test
+        working-directory: tests/UnitTests
+
+      - name: Run Integration Tests
+        env:
+          DATABASE_URL: "Server=postgres;Port=5432;User Id=aptabase;Password=aptabase_pw;Database=aptabase"
+          CLICKHOUSE_URL: "Host=clickhouse;Port=8123;Username=aptabase;Password=aptabase_pw"
+          SMTP_HOST: mailcatcher
+          MAILCATCHER_URL: "http://mailcatcher:1080"
+        run: dotnet test
+        working-directory: tests/IntegrationTests
+
+      - name: Setup Node.js 20
+        shell: bash
+        run: |
+          if command -v node >/dev/null 2>&1; then
+            echo "Node already present: $(node --version)"
+          else
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+          fi
+
+      - name: Frontend typecheck + build
+        run: npm ci && npm run build
+        working-directory: src
