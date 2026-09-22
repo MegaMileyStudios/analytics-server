@@ -1,0 +1,19 @@
+NODE materialize
+DESCRIPTION >
+    Monthly count of events per app
+
+SQL >
+
+    SELECT
+        app_id,
+        toStartOfMonth(timestamp) AS period,
+        countState() AS events
+    FROM events
+    GROUP BY
+        app_id,
+        period
+
+TYPE materialized
+DATASOURCE monthly_usage_v1
+
+

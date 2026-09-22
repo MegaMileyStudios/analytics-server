@@ -1,0 +1,7 @@
+SELECT period as Date,
+       countMerge(events) as Events
+FROM monthly_usage_v1
+WHERE app_id IN ('{{app_ids}}')
+AND period >= toStartOfMonth(now() - INTERVAL 6 MONTH)
+GROUP BY period
+ORDER BY period WITH FILL FROM toStartOfMonth(now() - INTERVAL 6 MONTH) TO toStartOfMonth(now() + INTERVAL 1 MONTH) STEP toIntervalMonth(1)

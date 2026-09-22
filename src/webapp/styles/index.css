@@ -1,0 +1,85 @@
+@import "./colors.css";
+@import "@datepicker-suggest/react/index.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  body,
+  button,
+  a,
+  canvas {
+    @apply tracking-tight;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-title tracking-normal;
+  }
+
+  /*
+  Forms
+*/
+  .form-select {
+    @apply block text-sm rounded text-foreground border py-2 pl-3 pr-10 bg-background shadow-sm;
+  }
+  .form-select::placeholder {
+    @apply text-muted-foreground opacity-50;
+  }
+
+  .form-select:focus {
+    @apply outline outline-2 outline-offset-1 outline-ring ring-0;
+  }
+
+  .form-select.compact {
+    @apply py-1 pl-2 pr-8 bg-[center_right_0.10rem];
+  }
+
+  /*
+  General Outline / Focus
+  */
+
+  a:focus-visible {
+    @apply rounded outline-ring;
+  }
+
+  .focus-ring:focus-visible,
+  a:focus-visible,
+  button:focus-visible {
+    @apply outline outline-2 outline-offset-1 outline-ring;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  @apply w-1.5 h-1.5;
+}
+
+::-webkit-scrollbar-button {
+  @apply hidden;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-accent rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground;
+}
