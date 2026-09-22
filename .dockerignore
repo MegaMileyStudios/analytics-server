@@ -1,0 +1,11 @@
+obj
+bin
+.vs
+.DS_Store
+
+etc/tinybird
+src/node_modules
+src/wwwroot/
+src/Properties/*
+tests
+tools

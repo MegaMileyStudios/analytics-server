@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>807c20d7-fc42-4645-8c9c-6d26a96d40ae</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.4.6" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <PackageReference Include="MailCatcher.Hosting" Version="1.0.0" />
+    <PackageReference Include="ClickHouse.Hosting" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aptabase.csproj" />
+  </ItemGroup>
+
+</Project>

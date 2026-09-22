@@ -1,0 +1,4 @@
+SELECT countMerge(events) as Count
+FROM monthly_usage_v1
+WHERE app_id IN ('{{app_ids}}')
+AND period = toStartOfMonth(now())

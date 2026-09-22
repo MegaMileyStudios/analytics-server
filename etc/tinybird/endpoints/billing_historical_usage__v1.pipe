@@ -1,0 +1,17 @@
+TOKEN "aptabase-api" READ
+
+NODE endpoint
+SQL >
+
+%
+    SELECT period as Date,
+		   countMerge(events) as Events
+    FROM monthly_usage_v1
+    PREWHERE app_id IN {{Array(app_ids, 'String')}}
+    AND period >= toStartOfMonth(now() - INTERVAL 6 MONTH)
+    GROUP BY period
+    ORDER BY period WITH FILL FROM toStartOfMonth(now() - INTERVAL 6 MONTH) TO toStartOfMonth(now() + INTERVAL 1 MONTH) STEP toIntervalMonth(1)
+
+TYPE endpoint
+
+
