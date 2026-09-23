@@ -1,9 +1,10 @@
 import { Button } from "@components/Button";
 import { SessionStartEndDateFilters, SessionsGridDisplay } from "@features/analytics/sessions/SessionsGridDisplay";
-import { IconChevronLeft, IconChevronRight, IconChevronsLeft } from "@tabler/icons-react";
+import { formatPersistentUserId } from "@fns/format-persistent-user-id";
+import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconX } from "@tabler/icons-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { QueryParams, historicalSessions } from "../query";
 import { UsersSessionsFilters } from "./UsersSessionsFilters";
 
@@ -26,6 +27,23 @@ export function UserSessionsList(props: Props) {
   const locationStateFilters = location.state?.sessionFilters;
   const [dateFilters, setDateFilters] = useState<SessionStartEndDateFilters>(locationStateFilters || {});
   const [topFilters, setTopFilters] = useState<TopFilterValue>({});
+  const [searchParams, setSearchParams] = useSearchParams();
+  const persistentUserId = searchParams.get("userId") || undefined;
+
+  // Start from the first page when switching to (or away from) a single user's sessions
+  const previousUserId = useRef(persistentUserId);
+  useEffect(() => {
+    if (previousUserId.current === persistentUserId) return;
+    previousUserId.current = persistentUserId;
+    setDateFilters({});
+  }, [persistentUserId]);
+
+  const clearUserFilter = () => {
+    setSearchParams((params) => {
+      params.delete("userId");
+      return params;
+    });
+  };
 
   const requestParams: QueryParams = useMemo(() => {
     const countryCode = !topFilters.country ? "" : topFilters.country;
@@ -40,14 +58,15 @@ export function UserSessionsList(props: Props) {
       osName: topFilters.osName,
       countryCode,
       appVersion,
+      persistentUserId,
     };
 
     const params = Object.fromEntries(Object.entries(allParams).filter(([_, v]) => v != null));
     return params as QueryParams;
-  }, [props, dateFilters, topFilters]);
+  }, [props, dateFilters, topFilters, persistentUserId]);
 
   const { data, isSuccess, isPlaceholderData } = useQuery({
-    queryKey: ["historical-sessions", props.appId, props.buildMode, dateFilters, topFilters],
+    queryKey: ["historical-sessions", props.appId, props.buildMode, dateFilters, topFilters, persistentUserId],
     queryFn: () => historicalSessions(requestParams),
     placeholderData: keepPreviousData,
   });
@@ -86,6 +105,23 @@ export function UserSessionsList(props: Props) {
   return (
     <div className="flex flex-col min-h-[calc(100vh-120px)]">
       <UsersSessionsFilters appId={props.appId} onFiltersChange={setTopFilters} />
+      {persistentUserId && (
+        <div className="mb-2">
+          <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm">
+            Sessions for user
+            <span className="font-mono" title={persistentUserId}>
+              {formatPersistentUserId(persistentUserId)}
+            </span>
+            <button
+              className="ml-1 text-muted-foreground hover:text-foreground"
+              title="Show all sessions"
+              onClick={clearUserFilter}
+            >
+              <IconX className="h-4 w-4" />
+            </button>
+          </span>
+        </div>
+      )}
       <div className="mb-auto">
         <SessionsGridDisplay
           appId={props.appId}

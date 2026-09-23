@@ -29,12 +29,17 @@ export function Component() {
   }, [app.name]);
 
   const totalUsers = dataPoints?.reduce((total, point) => total + point.users, 0) ?? 0;
+  const persistentUsers = dataPoints?.reduce((total, point) => total + point.persistentUsers, 0) ?? 0;
+  const inferredUsers = dataPoints?.reduce((total, point) => total + point.inferredUsers, 0) ?? 0;
 
   const subtitle = () => {
     if (isLoading) return "";
     if (totalUsers === 0) return "No users in the last hour";
-    if (totalUsers === 1) return "1 user in the last hour";
-    return `${totalUsers} users in the last hour`;
+
+    // Analytics backends without persistent user IDs (Tinybird) return zeros, so there's nothing to show
+    const hasBreakdown = persistentUsers > 0 || inferredUsers > 0;
+    const count = hasBreakdown ? `${totalUsers} (${persistentUsers}/${inferredUsers})` : `${totalUsers}`;
+    return `${count} ${totalUsers === 1 ? "user" : "users"} in the last hour`;
   };
 
   const aside = () => {

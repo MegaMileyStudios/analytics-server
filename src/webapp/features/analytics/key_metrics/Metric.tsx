@@ -11,6 +11,7 @@ type Props = {
   activeClassName?: string;
   onClick?: VoidFunction;
   format: "duration" | "number";
+  breakdown?: { persistent: number; inferred: number };
 };
 
 export function Metric(props: Props) {
@@ -21,6 +22,23 @@ export function Metric(props: Props) {
       <Tooltip>
         <TooltipContent>{props.current}</TooltipContent>
         <TooltipTrigger>{formatNumber(props.current, props.format)}</TooltipTrigger>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
+  // Analytics backends without persistent user IDs (Tinybird) return zeros, so there's nothing to show
+  const hasBreakdown = !!props.breakdown && (props.breakdown.persistent > 0 || props.breakdown.inferred > 0);
+
+  const Breakdown = hasBreakdown && (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipContent>Persistent / Inferred</TooltipContent>
+        <TooltipTrigger asChild>
+          <span className="ml-1 text-sm font-normal text-muted-foreground">
+            ({formatNumber(props.breakdown?.persistent, props.format)}/
+            {formatNumber(props.breakdown?.inferred, props.format)})
+          </span>
+        </TooltipTrigger>
       </Tooltip>
     </TooltipProvider>
   );
@@ -37,6 +55,7 @@ export function Metric(props: Props) {
         {props.format === "number" && props.current >= 1e3
           ? TooltipOnOverflow
           : formatNumber(props.current, props.format)}
+        {Breakdown}
       </div>
       <div className="text-sm text-muted-foreground w-full">
         {props.label}{" "}

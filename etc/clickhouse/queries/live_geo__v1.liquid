@@ -1,14 +1,25 @@
-SELECT uniq(user_id) as Users,
+-- Users with a persistent ID are counted by it, the others by their (daily rotating) user_id.
+-- A user_id is resolved to a persistent ID if any of its sessions sent one, so it's never counted twice.
+SELECT uniqIf(persistent_user_id, persistent_user_id IS NOT NULL) as PersistentUsers,
+uniqIf(user_id, persistent_user_id IS NULL) as InferredUsers,
+PersistentUsers + InferredUsers as Users,
 country_code as CountryCode,
 region_name as RegionName
+FROM (
+SELECT user_id,
+ country_code,
+ region_name,
+ max(session_persistent_user_id) OVER (PARTITION BY user_id) AS persistent_user_id
 FROM (
 SELECT session_id,
  min(min_timestamp) AS timestamp,
  any(user_id) AS user_id,
+ any(persistent_user_id) AS session_persistent_user_id,
  any(country_code) AS country_code,
  any(region_name) AS region_name
 FROM sessions_live_v1
 WHERE app_id = '{{app_id}}'
 GROUP BY session_id
 HAVING timestamp >= now() - INTERVAL 1 HOUR
+)
 ) GROUP BY country_code, region_name

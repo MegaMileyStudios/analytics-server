@@ -9,7 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { dateFilterValuesAtom } from "../../../atoms/date-atoms";
 import { Granularity, periodicStats } from "../query";
 import { KeyMetrics } from "./KeyMetrics";
-import { MetricsChart } from "./MetricsChart";
+import { MetricsBreakdown, MetricsChart } from "./MetricsChart";
 
 type Props = {
   appId: string;
@@ -91,6 +91,11 @@ export function MainChartWidget(props: Props) {
     sessions: number[] = [],
     events: number[] = [],
     labels: string[] = [];
+  const breakdown: MetricsBreakdown = {
+    users: { persistent: [], inferred: [] },
+    sessions: { persistent: [], inferred: [] },
+    events: { persistent: [], inferred: [] },
+  };
 
   let visibleData = data;
   // If the start date matches start of date we are filtering by 'All time'
@@ -106,6 +111,12 @@ export function MainChartWidget(props: Props) {
     sessions.push(x.sessions);
     events.push(x.events);
     labels.push(x.period);
+    breakdown.users.persistent.push(x.persistentUsers);
+    breakdown.users.inferred.push(x.inferredUsers);
+    breakdown.sessions.persistent.push(x.persistentSessions);
+    breakdown.sessions.inferred.push(x.inferredSessions);
+    breakdown.events.persistent.push(x.persistentEvents);
+    breakdown.events.inferred.push(x.inferredEvents);
   });
   const total = sessions.reduce((a, b) => a + b, 0);
 
@@ -122,6 +133,7 @@ export function MainChartWidget(props: Props) {
         users={users}
         sessions={sessions}
         events={events}
+        breakdown={breakdown}
         granularity={granularity}
         labels={labels}
         formatLabel={(label) => formatPeriod(granularity, label.toString())}

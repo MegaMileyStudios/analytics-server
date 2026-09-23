@@ -62,6 +62,10 @@ export function KeyMetrics(props: Props) {
             label="Daily Users"
             current={metrics?.current.dailyUsers ?? 0}
             previous={metrics?.previous?.dailyUsers}
+            breakdown={{
+              persistent: metrics?.current.dailyPersistentUsers ?? 0,
+              inferred: metrics?.current.dailyInferredUsers ?? 0,
+            }}
             activeClassName="bg-primary"
             active={props.activeMetric === "users"}
             onClick={() => props.onChangeActiveMetric("users")}

@@ -12,6 +12,8 @@ function createLinearGradient(chart: Chart, color1: string, color2: string): Can
 type ChartColors = {
   primary: string;
   primaryBackground: (chart: Chart) => CanvasGradient | string;
+  persistent: string;
+  inferred: string;
   success: string;
   destructive: string;
   warning: string;
@@ -26,6 +28,8 @@ const getColors = (): ChartColors => {
     primary: "#60A5FA",
     primaryBackground: (chart: Chart) =>
       createLinearGradient(chart, "rgba(96, 165, 250, 0.2)", "rgba(96, 165, 250, 0)"),
+    persistent: "#34D399", // emerald-400 (green)
+    inferred: "#FB923C", // orange-400
     success: `hsl(${root.getPropertyValue("--success")})`,
     destructive: `hsl(${root.getPropertyValue("--destructive")})`,
     warning: `hsl(${root.getPropertyValue("--warning")})`,

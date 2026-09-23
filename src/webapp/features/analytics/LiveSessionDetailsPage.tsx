@@ -6,7 +6,8 @@ import { useApps, useCurrentApp } from "@features/apps";
 import { CountryFlag, CountryName } from "@features/geo";
 import { formatDate, formatTime } from "@fns/format-date";
 import { formatNumber } from "@fns/format-number";
-import { IconArrowLeft, IconClick, IconClock, IconDevices, IconUser } from "@tabler/icons-react";
+import { formatPersistentUserId } from "@fns/format-persistent-user-id";
+import { IconArrowLeft, IconClick, IconClock, IconDevices, IconFingerprint, IconUser } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -62,6 +63,23 @@ export function Component() {
             <IconUser className="text-muted-foreground h-5 w-5" />
             <span className="tabular-nums">{`${formatDate(data.startedAt)} ${formatTime(data.startedAt)}`}</span>
           </div>
+          {data.persistentUserId && (
+            <div className="flex gap-2 items-center mb-1">
+              <IconFingerprint className="text-muted-foreground h-5 w-5" />
+              <span className="font-mono" title={data.persistentUserId}>
+                {formatPersistentUserId(data.persistentUserId)}
+              </span>
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() =>
+                  navigate(`/${app.id}/sessions?userId=${encodeURIComponent(data.persistentUserId ?? "")}`)
+                }
+              >
+                View all sessions from this user
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-col space-y-1 md:flex-row md:space-y-0">
             <div className="w-40 space-y-1">

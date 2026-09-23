@@ -6,7 +6,8 @@ SELECT session_id as Id,
        any(country_code) as CountryCode,
        any(region_name) as RegionName,
        any(os_name) as OsName,
-       any(os_version) as OsVersion
+       any(os_version) as OsVersion,
+       any(persistent_user_id) as PersistentUserId
 FROM sessions_live_v1
 WHERE app_id = '{{app_id}}'
 GROUP BY session_id

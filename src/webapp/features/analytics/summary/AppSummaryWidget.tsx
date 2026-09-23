@@ -64,6 +64,11 @@ export function AppSummaryWidget(props: Props) {
                       previousFormatted={`${metrics.previous?.dailyUsers.toFixed(0)} daily users`}
                     />
                     <span className="text-2xl">{metrics?.current.dailyUsers.toFixed(0)}</span>
+                    {(metrics.current.dailyPersistentUsers > 0 || metrics.current.dailyInferredUsers > 0) && (
+                      <span className="text-sm text-muted-foreground" title="Persistent / Inferred">
+                        ({metrics.current.dailyPersistentUsers.toFixed(0)}/{metrics.current.dailyInferredUsers.toFixed(0)})
+                      </span>
+                    )}
                   </div>
                 ) : null}
               </div>

@@ -1,3 +1,6 @@
+-- Users with a persistent ID are counted by it, the others by their (daily rotating) user_id.
+-- A user_id is resolved to a persistent ID if any of its events sent one, so it's never counted twice.
+-- Month granularity averages daily users, so persistent users are counted once per day there.
 SELECT
     {% if granularity == 'Hour' %}
      toStartOfHour(timestamp)
@@ -7,33 +10,49 @@ SELECT
      toStartOfMonth(timestamp)
     {% endif %} AS Period,
     {% if granularity == 'Month' %}
-     uniqExact(user_id) / (date_diff('day', Period, toLastDayOfMonth(Period)) + 1)
+     uniqExactIf((toDate(timestamp), persistent_user_id), persistent_user_id IS NOT NULL) / (date_diff('day', Period, toLastDayOfMonth(Period)) + 1)
     {% else %}
-     uniqExact(user_id)
-    {% endif %} AS Users,
-    uniqExact(session_id) AS Sessions,
-    count() AS Events
-FROM events
-PREWHERE app_id = '{{app_id}}'
-WHERE 1 = 1
-{% if date_from and date_to %}
-AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
-{% endif %}
-{% if country_code %}
-AND country_code = '{{country_code}}'
-{% endif %}
-{% if event_name %}
-AND event_name = '{{event_name}}'
-{% endif %}
-{% if os_name %}
-AND os_name = '{{os_name}}'
-{% endif %}
-{% if device_model %}
-AND device_model = '{{device_model}}'
-{% endif %}
-{% if app_version %}
-AND app_version = '{{app_version}}'
-{% endif %}
+     uniqExactIf(persistent_user_id, persistent_user_id IS NOT NULL)
+    {% endif %} AS PersistentUsers,
+    {% if granularity == 'Month' %}
+     uniqExactIf(user_id, persistent_user_id IS NULL) / (date_diff('day', Period, toLastDayOfMonth(Period)) + 1)
+    {% else %}
+     uniqExactIf(user_id, persistent_user_id IS NULL)
+    {% endif %} AS InferredUsers,
+    PersistentUsers + InferredUsers AS Users,
+    uniqExactIf(session_id, persistent_user_id IS NOT NULL) AS PersistentSessions,
+    uniqExactIf(session_id, persistent_user_id IS NULL) AS InferredSessions,
+    PersistentSessions + InferredSessions AS Sessions,
+    countIf(persistent_user_id IS NOT NULL) AS PersistentEvents,
+    countIf(persistent_user_id IS NULL) AS InferredEvents,
+    PersistentEvents + InferredEvents AS Events
+FROM (
+    SELECT timestamp,
+           user_id,
+           session_id,
+           max(persistent_user_id) OVER (PARTITION BY user_id) AS persistent_user_id
+    FROM events
+    PREWHERE app_id = '{{app_id}}'
+    WHERE 1 = 1
+    {% if date_from and date_to %}
+    AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+    {% endif %}
+    {% if country_code %}
+    AND country_code = '{{country_code}}'
+    {% endif %}
+    {% if event_name %}
+    AND event_name = '{{event_name}}'
+    {% endif %}
+    {% if os_name %}
+    AND os_name = '{{os_name}}'
+    {% endif %}
+    {% if device_model %}
+    AND device_model = '{{device_model}}'
+    {% endif %}
+    {% if app_version %}
+    AND app_version = '{{app_version}}'
+    {% endif %}
+)
 GROUP by Period
 ORDER BY Period ASC
 WITH FILL

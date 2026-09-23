@@ -17,6 +17,7 @@ export type QueryParams = {
   osName?: string;
   eventName?: string;
   appVersion?: string;
+  persistentUserId?: string;
 };
 
 export type TopNQueryChildrenProps = {
@@ -54,19 +55,18 @@ export function topAppBuildNumbers(params: QueryParams): Promise<TopNItem[]> {
   return api.get<TopNItem[]>(`/_stats/top-appbuildnumbers`, params);
 }
 
+type KeyMetricsRow = {
+  dailyUsers: number;
+  dailyPersistentUsers: number;
+  dailyInferredUsers: number;
+  sessions: number;
+  events: number;
+  durationSeconds: number;
+};
+
 export type KeyMetrics = {
-  current: {
-    dailyUsers: number;
-    sessions: number;
-    events: number;
-    durationSeconds: number;
-  };
-  previous?: {
-    dailyUsers: number;
-    sessions: number;
-    events: number;
-    durationSeconds: number;
-  };
+  current: KeyMetricsRow;
+  previous?: KeyMetricsRow;
 };
 
 export function keyMetrics(params: QueryParams): Promise<KeyMetrics> {
@@ -78,8 +78,14 @@ export type Granularity = "hour" | "day" | "month";
 export type PeriodicStats = Array<{
   period: string;
   users: number;
+  persistentUsers: number;
+  inferredUsers: number;
   sessions: number;
+  persistentSessions: number;
+  inferredSessions: number;
   events: number;
+  persistentEvents: number;
+  inferredEvents: number;
 }>;
 
 export function periodicStats(params: QueryParams): Promise<PeriodicStats> {
@@ -107,6 +113,8 @@ type LiveGeoDataPoint = {
   latitude: number;
   longitude: number;
   users: number;
+  persistentUsers: number;
+  inferredUsers: number;
 };
 
 export function liveGeoDataPoints(params: QueryParams): Promise<LiveGeoDataPoint[]> {
@@ -123,6 +131,7 @@ export type LiveRecentSession = {
   regionName: string;
   osName: string;
   osVersion: string;
+  persistentUserId?: string | null;
 };
 
 export function liveRecentSessions(params: QueryParams): Promise<LiveRecentSession[]> {

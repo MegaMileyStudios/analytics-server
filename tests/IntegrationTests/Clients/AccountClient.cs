@@ -73,4 +73,28 @@ public class AccountClient
     {
         return await _client.GetFromJsonAsync<SessionTimeline>($"/api/_stats/live-session-details?buildMode=release&appId={appId}&sessionId={sessionId}");
     }
+
+    public async Task<KeyMetrics?> GetKeyMetrics(string appId, DateTime startDate, DateTime endDate)
+    {
+        return await _client.GetFromJsonAsync<KeyMetrics>($"/api/_stats/metrics?buildMode=release&appId={appId}&startDate={startDate:o}&endDate={endDate:o}");
+    }
+
+    public async Task<PeriodicStatsRow[]?> GetPeriodicStats(string appId, DateTime startDate, DateTime endDate, string granularity)
+    {
+        return await _client.GetFromJsonAsync<PeriodicStatsRow[]>($"/api/_stats/periodic?buildMode=release&appId={appId}&startDate={startDate:o}&endDate={endDate:o}&granularity={granularity}");
+    }
+
+    public async Task<LiveGeoDataPoint[]?> GetLiveGeo(string appId)
+    {
+        return await _client.GetFromJsonAsync<LiveGeoDataPoint[]>($"/api/_stats/live-geo?buildMode=release&appId={appId}");
+    }
+
+    public async Task<HttpResponseMessage> GetHistoricalSessions(string appId, string? persistentUserId = null)
+    {
+        var url = $"/api/_stats/historical-sessions?buildMode=release&appId={appId}";
+        if (persistentUserId != null)
+            url += $"&persistentUserId={Uri.EscapeDataString(persistentUserId)}";
+
+        return await _client.GetAsync(url);
+    }
 }

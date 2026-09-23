@@ -1,7 +1,17 @@
 import { CountryFlag, CountryName } from "@features/geo";
 import { formatDate, formatTime } from "@fns/format-date";
 import { formatNumber } from "@fns/format-number";
-import { IconClick, IconClock, IconDeviceDesktop, IconDevices, IconMap, IconUser } from "@tabler/icons-react";
+import { formatPersistentUserId } from "@fns/format-persistent-user-id";
+import {
+  IconClick,
+  IconClock,
+  IconDeviceDesktop,
+  IconDevices,
+  IconFingerprint,
+  IconMap,
+  IconUser,
+} from "@tabler/icons-react";
+import { MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { OSIcon } from "../dashboard/icons/os";
 import { LiveRecentSession } from "../query";
@@ -38,6 +48,12 @@ export function SessionsGridDisplay(props: Props) {
     });
   };
 
+  const handleUserIdClick = (persistentUserId: string) => (e: MouseEvent) => {
+    // Don't open the session timeline, show all sessions of this user instead
+    e.stopPropagation();
+    navigate(`/${props.appId}/sessions?userId=${encodeURIComponent(persistentUserId)}`);
+  };
+
   return (
     <div className="flow-root">
       <div className="overflow-x-auto">
@@ -66,6 +82,12 @@ export function SessionsGridDisplay(props: Props) {
                   <div className="flex items-center gap-2">
                     <IconUser className="text-muted-foreground h-5 w-5" />
                     Timestamp
+                  </div>
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold">
+                  <div className="flex items-center gap-2">
+                    <IconFingerprint className="text-muted-foreground h-5 w-5" />
+                    User ID
                   </div>
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold">
@@ -105,6 +127,19 @@ export function SessionsGridDisplay(props: Props) {
                 <tr key={session.id} onClick={handleClick(session)} className="hover:bg-accent cursor-pointer">
                   <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6 lg:pl-8">
                     {`${formatDate(session.startedAt)} ${formatTime(session.startedAt)}`}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm">
+                    {session.persistentUserId ? (
+                      <button
+                        className="font-mono hover:underline"
+                        title={session.persistentUserId}
+                        onClick={handleUserIdClick(session.persistentUserId)}
+                      >
+                        {formatPersistentUserId(session.persistentUserId)}
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm">
                     <div className="flex justify-end">{formatNumber(session.duration, "duration")}</div>

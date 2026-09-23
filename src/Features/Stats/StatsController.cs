@@ -1,5 +1,6 @@
 using Aptabase.Features.Authentication;
 using Aptabase.Features.GeoIP;
+using Aptabase.Features.Privacy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -9,8 +10,14 @@ public record PeriodicStatsRow
 {
     public DateTime Period { get; set; }
     public double Users { get; set; } = 0;
+    public double PersistentUsers { get; set; } = 0;
+    public double InferredUsers { get; set; } = 0;
     public int Sessions { get; set; } = 0;
+    public int PersistentSessions { get; set; } = 0;
+    public int InferredSessions { get; set; } = 0;
     public int Events { get; set; } = 0;
+    public int PersistentEvents { get; set; } = 0;
+    public int InferredEvents { get; set; } = 0;
 }
 
 public record KeyMetrics
@@ -37,6 +44,8 @@ public record KeyMetrics
 public record KeyMetricsRow
 {
     public double DailyUsers { get; set; } = 0;
+    public double DailyPersistentUsers { get; set; } = 0;
+    public double DailyInferredUsers { get; set; } = 0;
     public int Sessions { get; set; } = 0;
     public int Events { get; set; } = 0;
     public double DurationSeconds { get; set; } = 0;
@@ -71,6 +80,8 @@ public record LiveGeoDataPoint
     public string CountryCode { get; set; } = "";
     public string RegionName { get; set; } = "";
     public ulong Users { get; set; }
+    public ulong PersistentUsers { get; set; }
+    public ulong InferredUsers { get; set; }
     public double Latitude { get; set; }
     public double Longitude { get; set; }
 }
@@ -87,6 +98,7 @@ public record LiveRecentSession
     public string OsName { get; set; } = "";
     public string OsVersion { get; set; } = "";
     public string DeviceModel { get; set; } = "";
+    public string? PersistentUserId { get; set; }
 }
 
 public record SessionTimeline
@@ -100,6 +112,7 @@ public record SessionTimeline
     public string RegionName { get; set; } = "";
     public string OsName { get; set; } = "";
     public string OsVersion { get; set; } = "";
+    public string? PersistentUserId { get; set; }
     public string[] EventsName { get; set; } = Array.Empty<string>();
     public DateTime[] EventsTimestamp { get; set; } = Array.Empty<DateTime>();
     public string[] EventsStringProps { get; set; } = Array.Empty<string>();
@@ -131,6 +144,7 @@ public record QueryArgs
     public string? DeviceModel { get; set; }
     public string? EventName { get; set; }
     public string? AppVersion { get; set; }
+    public string? PersistentUserId { get; set; }
 
     public QueryArgs CloneToPreviousInterval()
     {
@@ -159,6 +173,7 @@ public record QueryArgs
             OsName = OsName,
             EventName = EventName,
             AppVersion = AppVersion,
+            PersistentUserId = PersistentUserId,
         };
     }
 }
@@ -176,6 +191,7 @@ public class QueryParams
     public string? EventName { get; set; }
     public string? AppVersion { get; set; }
     public string? DeviceModel { get; set; }
+    public string? PersistentUserId { get; set; }
 
     public QueryArgs Parse()
     {
@@ -197,6 +213,7 @@ public class QueryParams
             DeviceModel = DeviceModel,
             EventName = EventName,
             AppVersion = AppVersion,
+            PersistentUserId = PersistentUserId,
         };
     }
 }
@@ -365,6 +382,9 @@ public class StatsController : Controller
     {
         var query = body.Parse();
 
+        if (!PersistentUserId.TryNormalize(query.PersistentUserId, out var persistentUserId))
+            return BadRequest(PersistentUserId.InvalidMessage);
+
         var row = await _queryClient.NamedQueryAsync<LiveRecentSession>("historical_sessions__v1", new
         {
             app_id = query.AppId,
@@ -374,7 +394,8 @@ public class StatsController : Controller
             event_name = query.EventName,
             os_name = query.OsName,
             app_version = query.AppVersion,
-            country_code = query.CountryCode
+            country_code = query.CountryCode,
+            persistent_user_id = persistentUserId,
         }, cancellationToken);
 
         return Ok(row);

@@ -4,13 +4,18 @@ import { QueryObserverResult, RefetchOptions } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { PeriodicStats } from "../query";
 
+type ActiveMetric = "users" | "sessions" | "events";
+
+export type MetricsBreakdown = Record<ActiveMetric, { persistent: number[]; inferred: number[] }>;
+
 type Props = {
   hasPartialData: boolean;
   labels: string[];
-  activeMetric: "users" | "sessions" | "events";
+  activeMetric: ActiveMetric;
   users: number[];
   sessions: number[];
   events: number[];
+  breakdown?: MetricsBreakdown;
   granularity: "hour" | "day" | "month";
   isEmpty?: boolean;
   isLoading?: boolean;
@@ -44,16 +49,38 @@ export function MetricsChart(props: Props) {
   const colors = useChartColors();
   const label = labels[`${props.activeMetric}-${props.granularity}`] ?? "";
 
+  const breakdown = props.breakdown?.[props.activeMetric];
+
   const datasets = useMemo(() => {
+    const total = {
+      label,
+      data: props[props.activeMetric],
+      hasPartialData: props.hasPartialData,
+      color: colors.primary,
+    };
+
+    // Analytics backends without persistent user IDs (Tinybird) return all zeros, so there's nothing to split
+    const hasBreakdown = !!breakdown && [...breakdown.persistent, ...breakdown.inferred].some((x) => x > 0);
+    if (!hasBreakdown) return [total];
+
     return [
+      total,
       {
-        label,
-        data: props[props.activeMetric],
+        label: `Persistent ${label.toLowerCase()}`,
+        data: breakdown.persistent,
         hasPartialData: props.hasPartialData,
-        color: colors.primary,
+        color: colors.persistent,
+        fill: false,
+      },
+      {
+        label: `Inferred ${label.toLowerCase()}`,
+        data: breakdown.inferred,
+        hasPartialData: props.hasPartialData,
+        color: colors.inferred,
+        fill: false,
       },
     ];
-  }, [props.activeMetric, props.hasPartialData, props[props.activeMetric], colors.primary, label]);
+  }, [props.activeMetric, props.hasPartialData, props[props.activeMetric], breakdown, colors, label]);
 
   return (
     <LineChart

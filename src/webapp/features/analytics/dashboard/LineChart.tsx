@@ -11,6 +11,7 @@ type Dataset = {
   data: number[];
   color?: string;
   hasPartialData?: boolean;
+  fill?: boolean;
 };
 
 type TooltipDataPoint = {
@@ -47,8 +48,8 @@ export function LineChart(props: Props) {
         datasets: props.datasets.map((dataset) => ({
           label: dataset.label,
           type: "line",
-          fill: "origin",
-          backgroundColor: (ctx) => colors.primaryBackground(ctx.chart),
+          fill: dataset.fill === false ? false : "origin",
+          backgroundColor: dataset.fill === false ? "transparent" : (ctx) => colors.primaryBackground(ctx.chart),
           data: dataset.data,
           borderColor: dataset.color ?? colors.primary,
           segment: {

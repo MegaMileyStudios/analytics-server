@@ -6,7 +6,8 @@ SELECT session_id as Id,
        any(country_code) as CountryCode,
        any(region_name) as RegionName,
        any(os_name) as OsName,
-       any(os_version) as OsVersion
+       any(os_version) as OsVersion,
+       any(persistent_user_id) as PersistentUserId
 FROM sessions_live_v1
 WHERE app_id = '{{app_id}}'
 {% if country_code %}
@@ -17,6 +18,9 @@ AND os_name = '{{os_name}}'
 {% endif %}
 {% if app_version %}
 AND app_version = '{{app_version}}'
+{% endif %}
+{% if persistent_user_id %}
+AND persistent_user_id = '{{persistent_user_id}}'
 {% endif %}
 {% if date_to %}
 AND (min_timestamp < '{{date_to}}' OR (min_timestamp = '{{date_to}}' AND session_id < '{{session_id}}'))
