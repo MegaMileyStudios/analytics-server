@@ -3,6 +3,8 @@ using System.Net;
 using AwesomeAssertions;
 using Aptabase.IntegrationTests.Clients;
 using Aptabase.Features.ErrorReporting.Buffer;
+using ClickHouse.Client.ADO;
+using Dapper;
 
 namespace Aptabase.IntegrationTests;
 
@@ -162,6 +164,38 @@ public class ErrorReportingTests
 
         var responseB = await _fixture.UserB.GetErrors(app.Id);
         responseB.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Can_Ingest_Error_With_Persistent_UserId()
+    {
+        const string userId = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new ErrorsClient(_fixture.CreateClient(), app.AppKey);
+        var code = await client.TrackError(ErrorsClient.NewError(DateTime.UtcNow, "NullReferenceException", "Something broke", userId: userId.ToUpperInvariant()));
+        code.Should().Be(HttpStatusCode.Accepted);
+
+        await _errorWritter.FlushErrors();
+
+        var conn = _fixture.Services.GetRequiredService<ClickHouseConnection>();
+        var userIds = await conn.QueryAsync<string?>(
+            "SELECT persistent_user_id FROM error_events WHERE app_id = @app_id",
+            new { app_id = app.Id });
+        userIds.Should().ContainSingle().Which.Should().Be(userId);
+    }
+
+    [Fact]
+    public async Task Cant_Ingest_Error_With_Invalid_Persistent_UserId()
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new ErrorsClient(_fixture.CreateClient(), app.AppKey);
+        var response = await client.PostError(ErrorsClient.NewError(DateTime.UtcNow, "NullReferenceException", "Something broke", userId: "76561198000000000"));
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var body = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+        body!["error"].Should().Be("Invalid error payload");
     }
 }
 

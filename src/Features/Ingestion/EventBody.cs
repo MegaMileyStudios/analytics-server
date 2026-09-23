@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aptabase.Features.Privacy;
 
 namespace Aptabase.Features.Ingestion;
 
@@ -34,6 +35,8 @@ public class SystemProperties
 
     [StringLength(100)]
     public string? DeviceModel { get; set; }
+
+    public string? UserId { get; set; }
 }
 
 public class EventBody
@@ -109,6 +112,11 @@ public class EventBody
             logger.LogWarning("Invalid locale {Locale} received from {OS} using {SdkVersion}", locale, SystemProps.OSName, SystemProps.SdkVersion);
 
         SystemProps.Locale = locale;
+
+        if (!PersistentUserId.TryNormalize(SystemProps.UserId, out var userId))
+            return (false, PersistentUserId.InvalidMessage);
+
+        SystemProps.UserId = userId;
 
         (valid, msg) = ValidateProps();
         if (!valid)

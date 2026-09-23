@@ -19,6 +19,7 @@ public readonly struct ErrorRow
     public readonly string AppVersion;
     public readonly string SdkVersion;
     public readonly string SessionId;
+    public readonly string? PersistentUserId;
     public readonly string Severity;
     public readonly string Kind;
     public readonly DateTime TTL;
@@ -37,6 +38,7 @@ public readonly struct ErrorRow
         AppVersion = e.AppVersion ?? "";
         SdkVersion = e.SdkVersion ?? "";
         SessionId = e.SessionId ?? "";
+        PersistentUserId = e.PersistentUserId;
         Severity = e.Severity ?? "";
         Kind = e.Kind ?? "";
         TTL = e.Timestamp.Add(ErrorTTL);
@@ -57,6 +59,7 @@ public readonly struct ErrorRow
         WriteProperty(writer, "appVersion", AppVersion);
         WriteProperty(writer, "sdkVersion", SdkVersion);
         WriteProperty(writer, "sessionId", SessionId);
+        WriteNullableProperty(writer, "persistentUserId", PersistentUserId);
         WriteProperty(writer, "severity", Severity);
         WriteProperty(writer, "kind", Kind);
         WriteProperty(writer, "ttl", TTL.ToString("o"), true);
@@ -66,5 +69,13 @@ public readonly struct ErrorRow
     private static void WriteProperty(StringWriter writer, string name, string value, bool isLast = false)
     {
         writer.Write($"\"{name}\": \"{JsonEncodedText.Encode(value)}\" {(isLast ? "" : ",")}");
+    }
+
+    private static void WriteNullableProperty(StringWriter writer, string name, string? value, bool isLast = false)
+    {
+        if (value is null)
+            writer.Write($"\"{name}\": null {(isLast ? "" : ",")}");
+        else
+            WriteProperty(writer, name, value, isLast);
     }
 }

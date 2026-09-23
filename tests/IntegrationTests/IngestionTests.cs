@@ -3,6 +3,8 @@ using System.Net;
 using AwesomeAssertions;
 using Aptabase.IntegrationTests.Clients;
 using Aptabase.Features.Ingestion.Buffer;
+using ClickHouse.Client.ADO;
+using Dapper;
 
 namespace Aptabase.IntegrationTests;
 
@@ -225,5 +227,72 @@ public class IngestionTests
 
         var count = await _fixture.UserA.CountEvents(app.Id, "24h");
         count.Should().Be(21);
+    }
+
+    private const string PersistentUserId = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+
+    [Fact]
+    public async Task Can_Ingest_With_Persistent_UserId()
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new IngestionClient(_fixture.CreateClient(), app.AppKey);
+        client.SetUserId(PersistentUserId.ToUpperInvariant());
+
+        var code = await client.TrackEvent(DateTime.UtcNow, "App Started", null);
+        code.Should().Be(HttpStatusCode.OK);
+
+        code = await client.TrackEvents([
+            (DateTime.UtcNow, "Menu Opened", null),
+            (DateTime.UtcNow, "Button Clicked", null),
+        ]);
+        code.Should().Be(HttpStatusCode.OK);
+
+        await _eventWritter.FlushEvents();
+
+        var userIds = await GetPersistentUserIds(app.Id);
+        userIds.Should().HaveCount(3).And.AllBe(PersistentUserId);
+    }
+
+    [Fact]
+    public async Task Can_Ingest_Without_Persistent_UserId()
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new IngestionClient(_fixture.CreateClient(), app.AppKey);
+        var code = await client.TrackEvent(DateTime.UtcNow, "App Started", null);
+        code.Should().Be(HttpStatusCode.OK);
+
+        await _eventWritter.FlushEvents();
+
+        var userIds = await GetPersistentUserIds(app.Id);
+        userIds.Should().ContainSingle().Which.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Cant_Ingest_Invalid_Persistent_UserId()
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new IngestionClient(_fixture.CreateClient(), app.AppKey);
+        client.SetUserId("76561198000000000");
+
+        var response = await client.PostEvent(DateTime.UtcNow, "App Started", null);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().Be("UserID is invalid");
+
+        await _eventWritter.FlushEvents();
+
+        var count = await _fixture.UserA.CountEvents(app.Id, "24h");
+        count.Should().Be(0);
+    }
+
+    private async Task<string?[]> GetPersistentUserIds(string appId)
+    {
+        var conn = _fixture.Services.GetRequiredService<ClickHouseConnection>();
+        var rows = await conn.QueryAsync<string?>(
+            "SELECT persistent_user_id FROM events WHERE app_id = @app_id",
+            new { app_id = appId });
+        return rows.ToArray();
     }
 }

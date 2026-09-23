@@ -9,6 +9,7 @@ public class IngestionClient
     private readonly string _ipAddress;
     private readonly string _appKey;
     private string? _sessionId = "";
+    private string? _userId;
 
     // Use this constructor to avoid rate limiting
     public IngestionClient(HttpClient client, string appKey)
@@ -36,14 +37,24 @@ public class IngestionClient
         _sessionId = value;
     }
 
+    public void SetUserId(string? value)
+    {
+        _userId = value;
+    }
+
     public async Task<HttpStatusCode> TrackEvent(DateTime timestamp, string eventName, object? props)
+    {
+        var response = await PostEvent(timestamp, eventName, props);
+        return response.StatusCode;
+    }
+
+    public async Task<HttpResponseMessage> PostEvent(DateTime timestamp, string eventName, object? props)
     {
         var row = NewEvent(timestamp, eventName, props);
         var body = JsonContent.Create(row);
         body.Headers.Add("App-Key", _appKey);
         body.Headers.Add("CloudFront-Viewer-Address", _ipAddress);
-        var response = await _client.PostAsync($"/api/v0/event", body);
-        return response.StatusCode;
+        return await _client.PostAsync($"/api/v0/event", body);
     }
 
     public async Task<HttpStatusCode> TrackEvents(IEnumerable<(DateTime, string, object?)> events)
@@ -69,7 +80,8 @@ public class IngestionClient
                 osName = "macOS",
                 osVersion = "13.5",
                 appVersion = "1.0.0",
-                sdkVersion = "aptabase-swift@0.0.0"
+                sdkVersion = "aptabase-swift@0.0.0",
+                userId = _userId
             },
             props
         };

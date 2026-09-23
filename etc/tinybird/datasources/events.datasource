@@ -25,7 +25,8 @@ SCHEMA >
     `string_props` String `json:$.stringProps`,
     `numeric_props` String `json:$.numericProps`,
     `ttl` DateTime `json:$.ttl`,
-    `device_model` String `json:$.deviceModel`
+    `device_model` String `json:$.deviceModel`,
+    `persistent_user_id` Nullable(String) `json:$.persistentUserId`
 
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"

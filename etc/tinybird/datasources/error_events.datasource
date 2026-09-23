@@ -18,7 +18,8 @@ SCHEMA >
     `session_id` String `json:$.sessionId`,
     `severity` LowCardinality(String) `json:$.severity`,
     `kind` LowCardinality(String) `json:$.kind`,
-    `ttl` DateTime `json:$.ttl`
+    `ttl` DateTime `json:$.ttl`,
+    `persistent_user_id` Nullable(String) `json:$.persistentUserId`
 
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"

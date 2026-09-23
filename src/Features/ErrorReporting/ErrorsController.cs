@@ -141,6 +141,7 @@ public class ErrorsController : ControllerBase
             AppVersion = body.AppVersion,
             SdkVersion = body.SdkVersion,
             SessionId = body.SessionId,
+            PersistentUserId = body.UserId,
             Severity = body.Severity,
             Kind = body.Kind,
             IsDebug = body.IsDebug

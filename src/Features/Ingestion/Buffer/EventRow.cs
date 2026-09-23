@@ -13,6 +13,7 @@ public readonly struct EventRow
     public readonly DateTime Timestamp;
     public readonly string EventName;
     public readonly string UserId;
+    public readonly string? PersistentUserId;
     public readonly string SessionId;
     public readonly string OSName;
     public readonly string OSVersion;
@@ -38,6 +39,7 @@ public readonly struct EventRow
         Timestamp = e.Timestamp;
         EventName = e.EventName;
         UserId = userId;
+        PersistentUserId = e.PersistentUserId;
         SessionId = e.SessionId;
         OSName = e.OSName;
         OSVersion = e.OSVersion;
@@ -63,6 +65,7 @@ public readonly struct EventRow
         WriteProperty(writer, "timestamp", Timestamp.ToString("o"));
         WriteProperty(writer, "eventName", EventName);
         WriteProperty(writer, "userId", UserId);
+        WriteNullableProperty(writer, "persistentUserId", PersistentUserId);
         WriteProperty(writer, "sessionId", SessionId);
         WriteProperty(writer, "osName", OSName);
         WriteProperty(writer, "osVersion", OSVersion);
@@ -85,5 +88,13 @@ public readonly struct EventRow
     private static void WriteProperty(StringWriter writer, string name, string value, bool isLast = false)
     {
         writer.Write($"\"{name}\": \"{JsonEncodedText.Encode(value)}\" {(isLast ? "" : ",")}");
+    }
+
+    private static void WriteNullableProperty(StringWriter writer, string name, string? value, bool isLast = false)
+    {
+        if (value is null)
+            writer.Write($"\"{name}\": null {(isLast ? "" : ",")}");
+        else
+            WriteProperty(writer, name, value, isLast);
     }
 }

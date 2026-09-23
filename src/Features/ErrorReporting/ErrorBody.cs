@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aptabase.Features.Privacy;
 
 namespace Aptabase.Features.ErrorReporting;
 
@@ -19,6 +20,7 @@ public class ErrorBody
     public string? AppVersion { get; set; }
     public string? SdkVersion { get; set; }
     public string? SessionId { get; set; }
+    public string? UserId { get; set; }
     public string? Severity { get; set; }
     public string? Kind { get; set; }
     // Older SDKs don't send this field, so it defaults to false (release build)
@@ -66,6 +68,9 @@ public class ErrorBody
         if (!string.IsNullOrWhiteSpace(Kind) && Kind.Length > 20)
             return false;
 
+        if (!NormalizeUserId())
+            return false;
+        
         return true;
     }
 
@@ -83,6 +88,16 @@ public class ErrorBody
         // Clamp future timestamps to now
         if (Timestamp.Value > now)
             Timestamp = now;
+    }
+
+    // Returns false if the user ID is present but invalid.
+    public bool NormalizeUserId()
+    {
+        if (!PersistentUserId.TryNormalize(UserId, out var userId))
+            return false;
+
+        UserId = userId;
+        return true;
     }
 
     public void NormalizeSeverityAndKind()

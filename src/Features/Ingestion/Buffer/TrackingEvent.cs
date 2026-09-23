@@ -11,6 +11,7 @@ public readonly struct TrackingEvent
     public readonly DateTime Timestamp { get; init; }
     public readonly string EventName { get; init; }
     public readonly string SessionId { get; init; }
+    public readonly string? PersistentUserId { get; init; }
     public readonly string OSName { get; init; }
     public readonly string OSVersion { get; init; }
     public readonly string DeviceModel { get; init; }

@@ -24,14 +24,19 @@ public class ErrorsClient
 
     public async Task<HttpStatusCode> TrackError(object error)
     {
-        var body = JsonContent.Create(error);
-        body.Headers.Add("App-Key", _appKey);
-        body.Headers.Add("CloudFront-Viewer-Address", _ipAddress);
-        var response = await _client.PostAsync("/api/v0/error", body);
+        var response = await PostError(error);
         return response.StatusCode;
     }
 
-    public static object NewError(DateTime timestamp, string errorType, string errorMessage, string? stackTrace = null)
+    public async Task<HttpResponseMessage> PostError(object error)
+    {
+        var body = JsonContent.Create(error);
+        body.Headers.Add("App-Key", _appKey);
+        body.Headers.Add("CloudFront-Viewer-Address", _ipAddress);
+        return await _client.PostAsync("/api/v0/error", body);
+    }
+
+    public static object NewError(DateTime timestamp, string errorType, string errorMessage, string? stackTrace = null, string? userId = null)
     {
         return new
         {
@@ -45,6 +50,7 @@ public class ErrorsClient
             appVersion = "1.0.0",
             sdkVersion = "aptabase-maui@0.2.0",
             sessionId = IngestionClient.NewSessionId(),
+            userId,
             severity = "error",
             kind = "handled",
             isDebug = false

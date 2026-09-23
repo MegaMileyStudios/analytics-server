@@ -2,6 +2,7 @@ using Xunit;
 using System.Text.Json;
 using Aptabase.Features.Ingestion;
 using AwesomeAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aptabase.UnitTests.Features.Ingestion;
 
@@ -66,5 +67,46 @@ public class EventBodyTests
         stringProps.Count.Should().Be(2);
         stringProps["type"]!.GetValue<string>().Should().Be("ERROR");
         stringProps["value"]!.GetValue<string>().Should().Be("123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567...");
+    }
+
+    private static EventBody CreateValidBody(string? userId) => new()
+    {
+        EventName = "Button Clicked",
+        Timestamp = DateTime.UtcNow.AddMinutes(-1),
+        SessionId = "8ee47a56-a457-4513-a65f-2b8c3065eb95",
+        SystemProps = new SystemProperties { SdkVersion = "aptabase-godot@0.0.0", UserId = userId },
+    };
+
+    [Fact]
+    public void IsValid_should_normalize_persistent_user_id()
+    {
+        var body = CreateValidBody("9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08");
+
+        var (valid, _) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeTrue();
+        body.SystemProps.UserId.Should().Be("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+    }
+
+    [Fact]
+    public void IsValid_should_accept_missing_persistent_user_id()
+    {
+        var body = CreateValidBody("");
+
+        var (valid, _) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeTrue();
+        body.SystemProps.UserId.Should().BeNull();
+    }
+
+    [Fact]
+    public void IsValid_should_reject_invalid_persistent_user_id()
+    {
+        var body = CreateValidBody("76561198000000000");
+
+        var (valid, msg) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeFalse();
+        msg.Should().Be("UserID is invalid");
     }
 }

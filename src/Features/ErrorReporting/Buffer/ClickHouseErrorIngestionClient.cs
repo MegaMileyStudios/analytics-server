@@ -20,6 +20,7 @@ public class ClickHouseErrorIngestionClient : IErrorIngestionClient
         "app_version",
         "sdk_version",
         "session_id",
+        "persistent_user_id",
         "severity",
         "kind",
         "ttl"
@@ -52,6 +53,7 @@ public class ClickHouseErrorIngestionClient : IErrorIngestionClient
             row.AppVersion,
             row.SdkVersion,
             row.SessionId,
+            row.PersistentUserId ?? (object)DBNull.Value,
             row.Severity,
             row.Kind,
             row.TTL,

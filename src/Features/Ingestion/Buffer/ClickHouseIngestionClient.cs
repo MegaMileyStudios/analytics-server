@@ -13,6 +13,7 @@ public class ClickHouseIngestionClient : IIngestionClient
         "timestamp",
         "event_name",
         "user_id",
+        "persistent_user_id",
         "session_id",
         "os_name",
         "os_version",
@@ -43,6 +44,7 @@ public class ClickHouseIngestionClient : IIngestionClient
             timestamp = row.Timestamp,
             event_name = row.EventName,
             user_id = row.UserId,
+            persistent_user_id = row.PersistentUserId,
             session_id = row.SessionId,
             os_name = row.OSName,
             os_version = row.OSVersion,
@@ -71,11 +73,12 @@ public class ClickHouseIngestionClient : IIngestionClient
             ColumnNames = COLUMNS,
         };
 
-        var values = rows.Select(row => new object[] { 
+        var values = rows.Select(row => new object[] {
             row.AppId,
             row.Timestamp,
             row.EventName,
             row.UserId,
+            row.PersistentUserId ?? (object)DBNull.Value,
             row.SessionId,
             row.OSName,
             row.OSVersion,

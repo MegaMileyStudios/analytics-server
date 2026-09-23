@@ -341,4 +341,41 @@ public class ErrorBodyTests
     }
 
     #endregion
+
+    #region NormalizeUserId
+
+    [Fact]
+    public void NormalizeUserId_Should_Lowercase_Valid_Hash()
+    {
+        var body = CreateValidBody();
+        body.UserId = "9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08";
+
+        body.NormalizeUserId().Should().BeTrue();
+
+        body.UserId.Should().Be("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void NormalizeUserId_Should_Accept_Missing_Value(string? input)
+    {
+        var body = CreateValidBody();
+        body.UserId = input;
+
+        body.NormalizeUserId().Should().BeTrue();
+
+        body.UserId.Should().BeNull();
+    }
+
+    [Fact]
+    public void NormalizeUserId_Should_Reject_Invalid_Value()
+    {
+        var body = CreateValidBody();
+        body.UserId = "76561198000000000";
+
+        body.NormalizeUserId().Should().BeFalse();
+    }
+
+    #endregion
 }

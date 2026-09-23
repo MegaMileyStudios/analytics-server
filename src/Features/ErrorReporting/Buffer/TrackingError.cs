@@ -14,6 +14,7 @@ public readonly struct TrackingError
     public string? AppVersion { get; init; }
     public string? SdkVersion { get; init; }
     public string? SessionId { get; init; }
+    public string? PersistentUserId { get; init; }
     public string? Severity { get; init; }
     public string? Kind { get; init; }
     public bool IsDebug { get; init; }
