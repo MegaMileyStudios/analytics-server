@@ -28,6 +28,8 @@ const SignUpMessage = () => (
 );
 
 const StatusMessage = (props: StatusMessageProps) => {
+  const providers = useOAuthProviders();
+
   if (props.status === "success") {
     return <span className="text-success">Woo-hoo! Email sent, go check your inbox!</span>;
   }
@@ -36,12 +38,12 @@ const StatusMessage = (props: StatusMessageProps) => {
     return (
       <>
         <span className="text-destructive">Could not find an account with that email.</span>
-        <SignUpMessage />
+        {!providers.signupsDisabled && <SignUpMessage />}
       </>
     );
   }
 
-  return <SignUpMessage />;
+  return providers.signupsDisabled ? null : <SignUpMessage />;
 };
 
 const RedirectErrorMessage = () => {

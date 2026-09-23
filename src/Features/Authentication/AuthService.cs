@@ -192,6 +192,9 @@ public class AuthService : IAuthService
             return user;
         }
 
+        if (_env.SignupsDisabled)
+            throw new Exception("Sign ups are currently disabled.");
+
         user = await CreateAccountAsync(name, email, cancellationToken);
         await AttachUserAuthProviderAsync(user, providerName, providerUid, cancellationToken);
         return user;

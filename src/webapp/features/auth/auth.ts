@@ -11,6 +11,7 @@ export type UserAccount = {
 export type OAuthProviders = {
   github: boolean;
   google: boolean;
+  signupsDisabled: boolean;
 };
 
 export async function getOAuthProviders(): Promise<OAuthProviders> {

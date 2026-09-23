@@ -58,7 +58,16 @@ public class AuthController : Controller
     [EnableRateLimiting("SignUp")]
     public async Task<IActionResult> Register([FromBody] RegisterBodyRequest body, CancellationToken cancellationToken)
     {
-        await _authService.SendRegisterEmailAsync(body.Name.Trim(), body.Email.Trim(), cancellationToken);
+        var email = body.Email.Trim();
+
+        if (_env.SignupsDisabled)
+        {
+            var existingUser = await _authService.FindUserByEmailAsync(email, cancellationToken);
+            if (existingUser is null)
+                return NotFound(new { });
+        }
+
+        await _authService.SendRegisterEmailAsync(body.Name.Trim(), email, cancellationToken);
         return Ok(new { });
     }
 
@@ -86,7 +95,8 @@ public class AuthController : Controller
         return Ok(new
         {
             github = !string.IsNullOrWhiteSpace(_env.OAuthGitHubClientId) && !string.IsNullOrWhiteSpace(_env.OAuthGitHubClientSecret),
-            google = !string.IsNullOrWhiteSpace(_env.OAuthGoogleClientId) && !string.IsNullOrWhiteSpace(_env.OAuthGoogleClientSecret)
+            google = !string.IsNullOrWhiteSpace(_env.OAuthGoogleClientId) && !string.IsNullOrWhiteSpace(_env.OAuthGoogleClientSecret),
+            signupsDisabled = _env.SignupsDisabled
         });
     }
 

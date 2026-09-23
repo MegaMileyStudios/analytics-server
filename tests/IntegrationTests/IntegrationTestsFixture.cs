@@ -9,6 +9,7 @@ public class IntegrationTestsFixture : IAsyncLifetime, IDisposable
     private readonly CustomWebApplicationFactory<Program> _factory;
     public AccountClient UserA { get; private set; } = null!;
     public AccountClient UserB { get; private set; } = null!;
+    public IServiceProvider Services => _factory.Services;
 
     public IntegrationTestsFixture()
     {

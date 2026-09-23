@@ -41,6 +41,7 @@ export function Component() {
 
   const providers = useOAuthProviders();
   const showOAuth = providers.github || providers.google;
+  const signupsDisabled = providers.signupsDisabled;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,47 +61,55 @@ export function Component() {
       </div>
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="py-8 px-4 sm:rounded-lg sm:px-10">
-          {showOAuth && (
+          {signupsDisabled ? (
+            <p className="text-center text-sm text-muted-foreground">
+              Sign ups are currently closed. Contact an administrator if you need an account.
+            </p>
+          ) : (
             <>
-              <div className="space-y-2">
-                {providers.github && <SignInWithGitHub />}
-                {providers.google && <SignInWithGoogle />}
-              </div>
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-muted">OR</span>
-                </div>
-              </div>
+              {showOAuth && (
+                <>
+                  <div className="space-y-2">
+                    {providers.github && <SignInWithGitHub />}
+                    {providers.google && <SignInWithGoogle />}
+                  </div>
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-muted">OR</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
+                <TextInput
+                  label="Name"
+                  name="name"
+                  placeholder="Peter Parker"
+                  value={name}
+                  required={true}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <TextInput
+                  label="Email Address"
+                  name="email"
+                  type="email"
+                  placeholder="peter.parker@corp.com"
+                  autoComplete="email"
+                  value={email}
+                  required={true}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <Button loading={status === "loading"}>Send magic link</Button>
+                <p className="text-center text-sm h-10 text-muted-foreground">
+                  <StatusMessage status={status} />
+                </p>
+              </form>
             </>
           )}
-
-          <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-            <TextInput
-              label="Name"
-              name="name"
-              placeholder="Peter Parker"
-              value={name}
-              required={true}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <TextInput
-              label="Email Address"
-              name="email"
-              type="email"
-              placeholder="peter.parker@corp.com"
-              autoComplete="email"
-              value={email}
-              required={true}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Button loading={status === "loading"}>Send magic link</Button>
-            <p className="text-center text-sm h-10 text-muted-foreground">
-              <StatusMessage status={status} />
-            </p>
-          </form>
         </div>
         <LegalNotice operation="signup" />
         <RegionSwitch />

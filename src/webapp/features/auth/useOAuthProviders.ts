@@ -10,8 +10,8 @@ export function useOAuthProviders(): OAuthProviders {
     queryKey: ["oauthProviders"],
     queryFn: getOAuthProviders,
     staleTime: Infinity,
-    initialData: isManagedCloud ? { github: true, google: true } : undefined,
+    initialData: isManagedCloud ? { github: true, google: true, signupsDisabled: false } : undefined,
   });
 
-  return data ?? { github: false, google: false };
+  return data ?? { github: false, google: false, signupsDisabled: false };
 }
