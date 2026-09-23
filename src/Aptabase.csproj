@@ -41,7 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../etc/geoip/**" CopyToOutputDirectory="PreserveNewest" LinkBase="etc/geoip" />
+    <None Include="../etc/geoip/**" Exclude="../etc/geoip/.env;../etc/geoip/*.sh" CopyToOutputDirectory="PreserveNewest" LinkBase="etc/geoip" />
     <None Include="../etc/clickhouse/**" CopyToOutputDirectory="PreserveNewest" LinkBase="etc/clickhouse" />
   </ItemGroup>
 
