@@ -92,6 +92,33 @@ export function periodicStats(params: QueryParams): Promise<PeriodicStats> {
   return api.get<PeriodicStats>(`/_stats/periodic`, params);
 }
 
+export type CohortGranularity = "day" | "week" | "month";
+
+export type RetentionParams = {
+  buildMode: "release" | "debug";
+  appId: string;
+  startDate: string;
+  endDate: string;
+  granularity: CohortGranularity;
+  periods: number;
+};
+
+export type RetentionCohort = {
+  cohortDate: string;
+  size: number;
+  retained: Array<number | null>;
+};
+
+export type RetentionCohorts = {
+  granularity: string;
+  periods: number;
+  cohorts: RetentionCohort[];
+};
+
+export function retentionCohorts(params: RetentionParams): Promise<RetentionCohorts> {
+  return api.get<RetentionCohorts>(`/_stats/retention`, params);
+}
+
 type EventPropsItem = {
   stringKey: string;
   stringValue: string;

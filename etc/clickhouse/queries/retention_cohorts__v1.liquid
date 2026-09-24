@@ -1,0 +1,41 @@
+-- Cohort retention: players are bucketed by the period (day, week or month) they were first seen,
+-- and for every cohort we count how many of them were active in each period after that.
+-- Only players with a persistent ID are counted, the ephemeral user_id rotates daily so it can't be followed over time.
+-- First seen looks at all history (bounded by the events TTL), so a returning player whose first event is
+-- before date_from doesn't show up as new in the first cohort.
+-- Returns one row per (cohort, period number) with active players, PeriodNumber 0 is the cohort size.
+{% if granularity == 'Month' %}
+{% assign unit = 'month' %}
+{% elsif granularity == 'Week' %}
+{% assign unit = 'week' %}
+{% else %}
+{% assign unit = 'day' %}
+{% endif %}
+WITH first_seen AS (
+    SELECT persistent_user_id AS uid,
+           toDate(toStartOfInterval(min(toDate(timestamp)), INTERVAL 1 {{unit}})) AS cohort
+    FROM events
+    PREWHERE app_id = '{{app_id}}'
+    WHERE persistent_user_id IS NOT NULL
+    GROUP BY uid
+    HAVING cohort BETWEEN toDate(toStartOfInterval(toDate('{{date_from}}'), INTERVAL 1 {{unit}}))
+                      AND toDate(toStartOfInterval(toDate('{{date_to}}'), INTERVAL 1 {{unit}}))
+),
+activity AS (
+    SELECT DISTINCT persistent_user_id AS uid,
+           toDate(toStartOfInterval(toDate(timestamp), INTERVAL 1 {{unit}})) AS period
+    FROM events
+    PREWHERE app_id = '{{app_id}}'
+    WHERE persistent_user_id IS NOT NULL
+    AND timestamp >= toDateTime(toDate(toStartOfInterval(toDate('{{date_from}}'), INTERVAL 1 {{unit}})))
+    AND timestamp < toDateTime(date_add({{unit}}, {{periods}} + 1, toDate(toStartOfInterval(toDate('{{date_to}}'), INTERVAL 1 {{unit}}))))
+)
+SELECT first_seen.cohort AS CohortDate,
+       toUInt32(date_diff('{{unit}}', first_seen.cohort, activity.period)) AS PeriodNumber,
+       uniqExact(first_seen.uid) AS Users
+FROM first_seen
+INNER JOIN activity ON activity.uid = first_seen.uid
+WHERE activity.period >= first_seen.cohort
+AND date_diff('{{unit}}', first_seen.cohort, activity.period) <= {{periods}}
+GROUP BY CohortDate, PeriodNumber
+ORDER BY CohortDate ASC, PeriodNumber ASC

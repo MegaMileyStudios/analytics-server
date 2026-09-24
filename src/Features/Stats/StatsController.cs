@@ -119,6 +119,44 @@ public record SessionTimeline
     public string[] EventsNumericProps { get; set; } = Array.Empty<string>();
 }
 
+public record RetentionRow
+{
+    public DateTime CohortDate { get; set; }
+    public uint PeriodNumber { get; set; }
+    public ulong Users { get; set; }
+}
+
+public record RetentionCohort
+{
+    public DateTime CohortDate { get; set; }
+    public int Size { get; set; }
+    public int?[] Retained { get; set; } = Array.Empty<int?>();
+}
+
+public record RetentionCohorts
+{
+    public string Granularity { get; set; } = "";
+    public int Periods { get; set; }
+    public RetentionCohort[] Cohorts { get; set; } = Array.Empty<RetentionCohort>();
+}
+
+public enum CohortGranularity
+{
+    Day,
+    Week,
+    Month
+}
+
+public class RetentionQueryParams
+{
+    public string BuildMode { get; set; } = "";
+    public string AppId { get; set; } = "";
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public CohortGranularity Granularity { get; set; } = CohortGranularity.Day;
+    public int? Periods { get; set; }
+}
+
 public enum TopNValue
 {
     UniqueSessions,
@@ -400,6 +438,74 @@ public class StatsController : Controller
 
         return Ok(row);
     }
+
+    [HttpGet("/api/_stats/retention")]
+    public async Task<IActionResult> Retention([FromQuery] RetentionQueryParams body, CancellationToken cancellationToken)
+    {
+        if (!body.StartDate.HasValue || !body.EndDate.HasValue)
+            return BadRequest("startDate and endDate are required.");
+
+        var dateFrom = ToUtcDate(body.StartDate.Value);
+        var dateTo = ToUtcDate(body.EndDate.Value);
+        if (dateFrom > dateTo)
+            return BadRequest("startDate must be before endDate.");
+
+        var (defaultPeriods, maxPeriods) = body.Granularity switch
+        {
+            CohortGranularity.Week => (12, 52),
+            CohortGranularity.Month => (12, 24),
+            _ => (30, 90),
+        };
+        var periods = body.Periods ?? defaultPeriods;
+        if (periods < 1 || periods > maxPeriods)
+            return BadRequest($"periods must be between 1 and {maxPeriods}.");
+
+        var result = new RetentionCohorts { Granularity = body.Granularity.ToString(), Periods = periods };
+
+        // Retention needs the persistent user ID, which the Tinybird pipes don't have
+        if (_queryClient is TinybirdQueryClient)
+            return Ok(result);
+
+        var appId = new QueryParams { AppId = body.AppId, BuildMode = body.BuildMode }.Parse().AppId;
+        var rows = await _queryClient.NamedQueryAsync<RetentionRow>("retention_cohorts__v1", new
+        {
+            app_id = appId,
+            date_from = dateFrom.ToString("yyyy-MM-dd"),
+            date_to = dateTo.ToString("yyyy-MM-dd"),
+            granularity = body.Granularity.ToString(),
+            periods,
+        }, cancellationToken);
+
+        var today = DateTime.UtcNow.Date;
+        result.Cohorts = rows
+            .GroupBy(r => r.CohortDate.Date)
+            .OrderBy(g => g.Key)
+            .Select(g =>
+            {
+                var users = g.ToDictionary(r => (int)r.PeriodNumber, r => (int)r.Users);
+                return new RetentionCohort
+                {
+                    CohortDate = g.Key,
+                    Size = users.GetValueOrDefault(0),
+                    Retained = Enumerable.Range(0, periods + 1)
+                        .Select(n => AddPeriods(g.Key, body.Granularity, n) <= today ? users.GetValueOrDefault(n) : (int?)null)
+                        .ToArray(),
+                };
+            })
+            .ToArray();
+
+        return Ok(result);
+    }
+
+    private static DateTime ToUtcDate(DateTime value)
+        => (value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : value).Date;
+
+    private static DateTime AddPeriods(DateTime cohort, CohortGranularity granularity, int count) => granularity switch
+    {
+        CohortGranularity.Week => cohort.AddDays(7 * count),
+        CohortGranularity.Month => cohort.AddMonths(count),
+        _ => cohort.AddDays(count),
+    };
 
     private async Task<KeyMetricsRow> GetKeyMetrics(QueryArgs args, CancellationToken cancellationToken)
     {

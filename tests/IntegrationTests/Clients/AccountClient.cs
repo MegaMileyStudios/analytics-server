@@ -97,4 +97,17 @@ public class AccountClient
 
         return await _client.GetAsync(url);
     }
+
+    public async Task<HttpResponseMessage> GetRetention(string appId, DateTime? startDate, DateTime? endDate, string granularity = "day", int? periods = null, string buildMode = "release")
+    {
+        var url = $"/api/_stats/retention?buildMode={buildMode}&appId={appId}&granularity={granularity}";
+        if (startDate.HasValue)
+            url += $"&startDate={startDate:yyyy-MM-dd}";
+        if (endDate.HasValue)
+            url += $"&endDate={endDate:yyyy-MM-dd}";
+        if (periods.HasValue)
+            url += $"&periods={periods}";
+
+        return await _client.GetAsync(url);
+    }
 }

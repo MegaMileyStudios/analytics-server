@@ -54,6 +54,10 @@ const router = createBrowserRouter([
         lazy: () => import("./features/analytics/UserSessionsPage"),
       },
       {
+        path: "/:id/retention",
+        lazy: () => import("./features/analytics/RetentionPage"),
+      },
+      {
         path: "/:id/errors",
         lazy: () => import("./features/analytics/ErrorsPage"),
       },
