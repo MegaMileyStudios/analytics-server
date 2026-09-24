@@ -109,4 +109,53 @@ public class EventBodyTests
         valid.Should().BeFalse();
         msg.Should().Be("UserID is invalid");
     }
+
+    private const string ValidUserId = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+
+    [Fact]
+    public void IsValid_should_accept_delayed_events_with_persistent_user_id()
+    {
+        var body = CreateValidBody(ValidUserId);
+        body.Timestamp = DateTime.UtcNow.AddDays(-3);
+
+        var (valid, _) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsValid_should_reject_delayed_events_without_persistent_user_id()
+    {
+        var body = CreateValidBody(null);
+        body.Timestamp = DateTime.UtcNow.AddDays(-3);
+
+        var (valid, msg) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeFalse();
+        msg.Should().Be("Event is too old.");
+    }
+
+    [Fact]
+    public void IsValid_should_reject_events_older_than_7_days_with_persistent_user_id()
+    {
+        var body = CreateValidBody(ValidUserId);
+        body.Timestamp = DateTime.UtcNow.AddDays(-8);
+
+        var (valid, msg) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeFalse();
+        msg.Should().Be("Event is too old.");
+    }
+
+    [Fact]
+    public void IsValid_should_reject_invalid_persistent_user_id_on_delayed_events()
+    {
+        var body = CreateValidBody("76561198000000000");
+        body.Timestamp = DateTime.UtcNow.AddDays(-3);
+
+        var (valid, msg) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeFalse();
+        msg.Should().Be("UserID is invalid");
+    }
 }

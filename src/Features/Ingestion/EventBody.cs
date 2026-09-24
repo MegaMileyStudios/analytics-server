@@ -41,6 +41,9 @@ public class SystemProperties
 
 public class EventBody
 {
+    public static readonly TimeSpan MaxEventAge = TimeSpan.FromDays(1);
+    public static readonly TimeSpan MaxPersistentUserEventAge = TimeSpan.FromDays(7);
+
     [Required, StringLength(60)]
     public string EventName { get; set; } = "";
 
@@ -101,7 +104,13 @@ public class EventBody
         if (Timestamp > DateTime.UtcNow.AddMinutes(10))
             return (false, "Future events are not allowed.");
 
-        if (Timestamp < DateTime.UtcNow.AddDays(-1))
+        if (!PersistentUserId.TryNormalize(SystemProps.UserId, out var userId))
+            return (false, PersistentUserId.InvalidMessage);
+
+        SystemProps.UserId = userId;
+
+        var maxAge = SystemProps.UserId is null ? MaxEventAge : MaxPersistentUserEventAge;
+        if (Timestamp < DateTime.UtcNow - maxAge)
         {
             logger.LogWarning("Event timestamp {EventTimestamp} is too old.", Timestamp);
             return (false, "Event is too old.");
@@ -112,11 +121,6 @@ public class EventBody
             logger.LogWarning("Invalid locale {Locale} received from {OS} using {SdkVersion}", locale, SystemProps.OSName, SystemProps.SdkVersion);
 
         SystemProps.Locale = locale;
-
-        if (!PersistentUserId.TryNormalize(SystemProps.UserId, out var userId))
-            return (false, PersistentUserId.InvalidMessage);
-
-        SystemProps.UserId = userId;
 
         (valid, msg) = ValidateProps();
         if (!valid)
