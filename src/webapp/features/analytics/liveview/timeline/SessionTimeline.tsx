@@ -2,6 +2,8 @@ import { Fragment } from "react";
 import { DelayStep } from "./DelayStep";
 import { EventStep } from "./EventStep";
 import { FirstEventStep } from "./FirstEventStep";
+import { getSessionEndReason } from "./session-end";
+import { SessionEndedStep } from "./SessionEndedStep";
 import { WaitingEventsStep } from "./WaitingEventsStep";
 
 type Props = {
@@ -16,6 +18,9 @@ export function SessionTimeline(props: Props) {
   const sortedIndexes = timestamps
     .map((_, idx) => idx)
     .sort((a, b) => timestamps[a].getTime() - timestamps[b].getTime());
+
+  const lastEventAt = sortedIndexes.length > 0 ? timestamps[sortedIndexes[sortedIndexes.length - 1]] : undefined;
+  const endReason = getSessionEndReason(props.eventsName || [], lastEventAt, Date.now());
 
   return (
     <>
@@ -51,7 +56,7 @@ export function SessionTimeline(props: Props) {
         );
       })}
 
-      <WaitingEventsStep />
+      {endReason ? <SessionEndedStep reason={endReason} /> : <WaitingEventsStep />}
     </>
   );
 }

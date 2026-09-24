@@ -3,7 +3,8 @@
 
 Simulates players with a persistent user ID, anonymous players without one, and players that only
 send their ID after "logging in", spread over the last 23 hours (the API rejects events older than
-a day), with some sessions in the last hour so they show up in the Live View.
+a day), with some sessions in the last hour so they show up in the Live View. Most sessions end with
+an app_shutdown event like the SDK sends, some don't, to cover both ways the Session Timeline ends.
 
 Usage: scripts/send-test-events.py <app key> [--url https://localhost:5251] [--seed 42] [--debug]
 
@@ -23,6 +24,8 @@ from datetime import datetime, timedelta, timezone
 EVENT_NAMES = ["level_started", "level_completed", "ball_dropped", "settings_opened", "shop_opened"]
 APP_VERSIONS = ["1.0.0", "1.1.0", "1.2.0"]
 OS_LIST = [("Windows", "10.0.19045"), ("Windows", "10.0.22631"), ("Linux", "6.8"), ("macOS", "14.5")]
+SHUTDOWN_CHANCE = 0.8  # finished sessions that end with app_shutdown
+SHUTDOWN_CHANCE_LIVE = 0.4  # sessions in the last hour that were already closed
 
 
 def persistent_id(name: str) -> str:
@@ -46,7 +49,9 @@ class Device:
         self.app_version = rng.choice(APP_VERSIONS)
 
 
-def build_session(rng: random.Random, device: Device, started_at: datetime, user_id: str | None, debug: bool) -> list[dict]:
+def build_session(
+    rng: random.Random, device: Device, started_at: datetime, now: datetime, user_id: str | None, debug: bool
+) -> list[dict]:
     # Numeric session IDs encode their start time, like the SDKs generate them
     session_id = str(int(started_at.timestamp()) * 100_000_000 + rng.randint(0, 99_999_999))
     system_props = {
@@ -62,9 +67,19 @@ def build_session(rng: random.Random, device: Device, started_at: datetime, user
     if user_id:
         system_props["userId"] = user_id
 
+    names = ["app_started"] + [rng.choice(EVENT_NAMES) for _ in range(rng.randint(1, 12))]
+    # Most sessions end with the SDK's app_shutdown, the rest crashed or lost their last events (older
+    # sessions) or are still being played (sessions in the last hour)
+    is_live = now - started_at < timedelta(hours=1)
+    if rng.random() < (SHUTDOWN_CHANCE_LIVE if is_live else SHUTDOWN_CHANCE):
+        names.append("app_shutdown")
+
     events = []
     timestamp = started_at
-    for name in ["app_started"] + [rng.choice(EVENT_NAMES) for _ in range(rng.randint(1, 12))]:
+    for name in names:
+        # Live sessions can't have events in the future, cut them off at the current time
+        if timestamp > now:
+            break
         props = {"level": rng.randint(1, 20)} if name.startswith("level") else {}
         events.append({
             "timestamp": timestamp.isoformat().replace("+00:00", "Z"),
@@ -128,7 +143,7 @@ def main() -> None:
             user_id = device.user_id
             if device.login_after_first_session and index == 0:
                 user_id = None
-            batch = build_session(rng, device, started_at, user_id, args.debug)
+            batch = build_session(rng, device, started_at, now, user_id, args.debug)
             send(args.url, args.app_key, device, batch, ctx)
             sessions += 1
             events += len(batch)
