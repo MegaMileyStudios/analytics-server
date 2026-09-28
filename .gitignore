@@ -4,6 +4,7 @@ bin
 .idea
 .DS_Store
 coverage.cobertura.xml
+*.DotSettings.user
 
 etc/tinybird/.tinyb
 src/node_modules
@@ -12,6 +13,8 @@ src/Properties/*
 !src/Properties/launchSettings.example.json
 /tests/IntegrationTests/Properties/launchSettings.json
 /tests/UnitTests/Properties/launchSettings.json
+
+*__pycache__*
 
 # MaxMind credentials for etc/geoip/update-geolite2.sh
 etc/geoip/.env
