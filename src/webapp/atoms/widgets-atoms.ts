@@ -1,18 +1,45 @@
 import { produce } from "immer";
 import { atom, WritableAtom } from "jotai";
+import {
+  compactRows,
+  fits,
+  flowLayout,
+  nextFreeRow,
+  sortByPosition,
+  WidgetLayout,
+  WidgetWidth,
+} from "./dashboard-layout";
 
 export type EventsChartWidgetConfig = {
   selectedEventNames: string[];
 };
 
-type WidgetType =
+export type PropertyAggregation = "max" | "min" | "avg" | "median" | "sum" | "p99" | "p95";
+
+export type PropertySeries = {
+  propKey: string;
+  aggregation: PropertyAggregation;
+  color: string;
+};
+
+export type PropertyChartWidgetConfig = {
+  eventName?: string;
+  kind?: "number" | "boolean" | "string";
+  series?: PropertySeries[];
+  stackMode?: "none" | "stacked" | "filled";
+  propKey?: string;
+  display?: "bar" | "bar-time" | "pie";
+};
+
+export type WidgetType =
   | "custom-events-chart"
+  | "custom-property-chart"
   | "events-chart"
   | "countries"
   | "operating-systems"
   | "events"
   | "app-versions";
-const userDefinedWidgetTypes: WidgetType[] = ["custom-events-chart"];
+const userDefinedWidgetTypes: WidgetType[] = ["custom-events-chart", "custom-property-chart"];
 
 export type SingleWidgetConfig<T = any> = {
   id: string;
@@ -20,7 +47,8 @@ export type SingleWidgetConfig<T = any> = {
   type: WidgetType;
   isDefined: boolean;
   isMinimized: boolean;
-  orderIndex: number;
+  layout: WidgetLayout;
+  orderIndex?: number;
   properties?: T;
   supportsRemove?: boolean;
 };
@@ -28,13 +56,17 @@ export type SingleWidgetConfig<T = any> = {
 export type WidgetsConfig = {
   [key: string]: SingleWidgetConfig[];
 };
+
+const defaultWidth = (type: WidgetType): WidgetWidth =>
+  type === "custom-events-chart" || type === "custom-property-chart" || type === "events-chart" ? 6 : 3;
+
 export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
   {
     id: "events-chart",
     title: "Custom Chart",
     type: "custom-events-chart",
     isMinimized: false,
-    orderIndex: 0,
+    layout: { row: 0, col: 0, width: 6 },
     isDefined: false,
     properties: {
       selectedEventNames: [],
@@ -46,7 +78,7 @@ export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
     title: "Events Chart",
     type: "events-chart",
     isMinimized: false,
-    orderIndex: 1,
+    layout: { row: 1, col: 0, width: 6 },
     isDefined: true,
   },
   {
@@ -54,7 +86,7 @@ export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
     title: "Countries",
     type: "countries",
     isMinimized: false,
-    orderIndex: 2,
+    layout: { row: 2, col: 0, width: 3 },
     isDefined: true,
   },
   {
@@ -62,7 +94,7 @@ export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
     title: "Operating Systems",
     type: "operating-systems",
     isMinimized: false,
-    orderIndex: 3,
+    layout: { row: 2, col: 3, width: 3 },
     isDefined: true,
   },
   {
@@ -70,7 +102,7 @@ export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
     title: "Events",
     type: "events",
     isMinimized: false,
-    orderIndex: 4,
+    layout: { row: 3, col: 0, width: 3 },
     isDefined: true,
   },
   {
@@ -78,7 +110,7 @@ export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
     title: "App Versions",
     type: "app-versions",
     isMinimized: false,
-    orderIndex: 5,
+    layout: { row: 3, col: 3, width: 3 },
     isDefined: true,
   },
 ];
@@ -88,12 +120,20 @@ const EMPTY_CUSTOM_EVENTS_CHART_WIDGET: SingleWidgetConfig<EventsChartWidgetConf
   title: "Custom Chart",
   type: "custom-events-chart",
   isMinimized: false,
-  orderIndex: 0,
+  layout: { row: 0, col: 0, width: 6 },
   isDefined: false,
   properties: {
     selectedEventNames: [],
   },
   supportsRemove: true,
+};
+
+const withLayout = (widgets: SingleWidgetConfig[]): SingleWidgetConfig[] => {
+  if (widgets.every((w) => w.layout)) return widgets;
+
+  const ordered = widgets.toSorted((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+  const layouts = flowLayout(ordered.map((w) => defaultWidth(w.type)));
+  return ordered.map(({ orderIndex, ...w }, index) => ({ ...w, layout: layouts[index] }));
 };
 
 localStorage.removeItem("dashboard_widgets");
@@ -105,7 +145,7 @@ export const getDashboardWidgetsForAppAtom = atom((get) => {
   const widgets = get(getDashboardWidgetAtom);
   const getWidgetsForApp = (appId: string) => {
     const widgetWithAppId = widgets?.[appId];
-    return widgetWithAppId ?? DEFAULT_WIDGETS_CONFIG;
+    return widgetWithAppId ? withLayout(widgetWithAppId) : DEFAULT_WIDGETS_CONFIG;
   };
   return getWidgetsForApp;
 });
@@ -120,9 +160,23 @@ export type UpdateDashboardWidgetsAction<T = any> =
   | {
       widgetId: string;
       appId: string;
-      type: "update-order";
-      active: { widgetId: string; newIndex: number };
-      over: { widgetId: string; newIndex: number };
+      type: "move";
+      row: number;
+      col: number;
+    }
+  | {
+      widgetId: string;
+      appId: string;
+      type: "resize";
+      col: number;
+      width: WidgetWidth;
+    }
+  | {
+      widgetId: string;
+      appId: string;
+      type: "change-type";
+      widgetType: WidgetType;
+      properties?: T;
     }
   | {
       widgetId: string;
@@ -140,7 +194,7 @@ export const dashboardWidgetsAtom = atom<null, [UpdateDashboardWidgetsAction], v
   (get, set, action) => {
     const widgetsConfig = get(getDashboardWidgetAtom);
     const mapResult = widgetsConfig ?? {};
-    const widgetsConfigArray: SingleWidgetConfig[] = mapResult[action.appId] ?? DEFAULT_WIDGETS_CONFIG;
+    const widgetsConfigArray: SingleWidgetConfig[] = withLayout(mapResult[action.appId] ?? DEFAULT_WIDGETS_CONFIG);
 
     const result = produce(widgetsConfigArray, (draft) => {
       let widgetIndex = draft.findIndex((w) => w.id === action.widgetId);
@@ -150,55 +204,69 @@ export const dashboardWidgetsAtom = atom<null, [UpdateDashboardWidgetsAction], v
           title: action.widgetId,
           type: "custom-events-chart",
           isMinimized: false,
-          orderIndex: draft.length,
+          layout: { row: nextFreeRow(draft), col: 0, width: 6 },
           isDefined: true,
         });
         widgetIndex = draft.length - 1;
       }
+      const widget = draft[widgetIndex];
 
       if (action.type === "update-properties") {
-        draft[widgetIndex].properties = action.properties;
-      } else if (action.type === "update-order") {
-        const activeWidget = draft.find((w) => w.id === action.active.widgetId);
-        const overWidget = draft.find((w) => w.id === action.over.widgetId);
-        if (activeWidget) {
-          activeWidget.orderIndex = action.active.newIndex;
+        widget.properties = action.properties;
+      } else if (action.type === "move") {
+        const layout = { ...widget.layout, row: action.row, col: action.col };
+        if (fits(draft, layout, widget.id)) {
+          widget.layout = layout;
+          compactRows(draft);
         }
-        if (overWidget) {
-          overWidget.orderIndex = action.over.newIndex;
+      } else if (action.type === "resize") {
+        const layout = { ...widget.layout, col: action.col, width: action.width };
+        if (fits(draft, layout, widget.id)) {
+          widget.layout = layout;
         }
+      } else if (action.type === "change-type") {
+        widget.type = action.widgetType;
+        widget.properties = action.properties;
       } else if (action.type === "toggle-minimized") {
-        draft[widgetIndex].isMinimized = !draft[widgetIndex].isMinimized;
+        widget.isMinimized = !widget.isMinimized;
       } else if (action.type === "toggle-is-defined") {
-        draft[widgetIndex].isDefined = !draft[widgetIndex].isDefined;
-        draft[widgetIndex].isMinimized = false;
+        widget.isDefined = !widget.isDefined;
+        widget.isMinimized = false;
 
-        if (draft[widgetIndex].isDefined) {
+        if (widget.isDefined) {
           const areAllUserDefinedWidgetsDefined = draft
             .filter((w) => userDefinedWidgetTypes.includes(w.type))
             .every((w) => w.isDefined);
           if (areAllUserDefinedWidgetsDefined) {
+            const nextRow = nextFreeRow(draft);
             draft.push(
               produce(EMPTY_CUSTOM_EVENTS_CHART_WIDGET, (customEventsDraft) => {
                 customEventsDraft.id = getNextWidgetId(widgetsConfigArray, customEventsDraft.id);
-                customEventsDraft.orderIndex = widgetsConfigArray.length;
+                customEventsDraft.layout = { row: nextRow, col: 0, width: 6 };
               })
             );
           }
         } else {
-          const widgetsToRemoveIds = draft
-            .filter((w) => userDefinedWidgetTypes.includes(w.type) && !w.isDefined && w.id !== action.widgetId)
-            .map((w) => w.id);
-          const widgetsToRemoveIndexes = widgetsToRemoveIds.map((id) => draft.findIndex((w) => w.id === id));
+          if (widget.type === "custom-property-chart") {
+            widget.type = "custom-events-chart";
+            widget.properties = { selectedEventNames: [] };
+          }
+
+          const widgetsToRemoveIndexes = draft
+            .map((w, index) => ({ w, index }))
+            .filter(({ w }) => userDefinedWidgetTypes.includes(w.type) && !w.isDefined && w.id !== action.widgetId)
+            .map(({ index }) => index)
+            .reverse();
           widgetsToRemoveIndexes.forEach((toRemoveIndex) => {
             draft.splice(toRemoveIndex, 1);
           });
+          compactRows(draft);
         }
       }
     });
 
     const allConfigs = produce(mapResult, (draftResult: any) => {
-      draftResult[action.appId] = result;
+      draftResult[action.appId] = sortByPosition(result);
     });
     set(getDashboardWidgetAtom, allConfigs);
 

@@ -6,9 +6,11 @@ import { useChartColors } from "@features/theme";
 import { QueryObserverResult, RefetchOptions } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 
+export type StackMode = "none" | "stacked" | "filled";
+
 type Dataset = {
   label: string;
-  data: number[];
+  data: (number | null)[];
   color?: string;
   hasPartialData?: boolean;
   fill?: boolean;
@@ -19,12 +21,15 @@ type TooltipDataPoint = {
   points: Array<{
     name: string;
     value: number;
+    percentage?: number;
   }>;
 };
 
 type Props = {
   labels: string[];
   datasets: Dataset[];
+  stackMode?: StackMode;
+  showLegend?: boolean;
   granularity: "hour" | "day" | "month";
   isEmpty?: boolean;
   isLoading?: boolean;
@@ -40,17 +45,30 @@ export function LineChart(props: Props) {
   const colors = useChartColors();
 
   const showAllLabels = props.granularity === "month";
+  const stackMode = props.stackMode ?? "none";
+  const isStacked = stackMode !== "none";
 
   const config: ChartConfigurationCustomTypesPerDataset = useMemo(() => {
+    const totals = props.labels.map((_, i) => props.datasets.reduce((sum, d) => sum + (d.data[i] ?? 0), 0));
+    const plotted = props.datasets.map((dataset) => {
+      if (stackMode === "filled") return dataset.data.map((v, i) => (totals[i] ? ((v ?? 0) / totals[i]) * 100 : 0));
+      if (stackMode === "stacked") return dataset.data.map((v) => v ?? 0);
+      return dataset.data;
+    });
+
     return {
       data: {
         labels: props.labels,
-        datasets: props.datasets.map((dataset) => ({
+        datasets: props.datasets.map((dataset, index) => ({
           label: dataset.label,
           type: "line",
-          fill: dataset.fill === false ? false : "origin",
-          backgroundColor: dataset.fill === false ? "transparent" : (ctx) => colors.primaryBackground(ctx.chart),
-          data: dataset.data,
+          fill: isStacked ? (index === 0 ? "origin" : "-1") : dataset.fill === false ? false : "origin",
+          backgroundColor: isStacked
+            ? withAlpha(dataset.color ?? colors.primary, 0.35)
+            : dataset.fill === false
+            ? "transparent"
+            : (ctx) => colors.primaryBackground(ctx.chart),
+          data: plotted[index],
           borderColor: dataset.color ?? colors.primary,
           segment: {
             borderDash: dataset.hasPartialData
@@ -103,8 +121,11 @@ export function LineChart(props: Props) {
               tickWidth: 0,
             },
             beginAtZero: true,
+            stacked: isStacked,
+            max: stackMode === "filled" ? 100 : undefined,
             ticks: {
               maxTicksLimit: 4,
+              callback: stackMode === "filled" ? (value) => `${value}%` : undefined,
             },
             border: {
               display: false,
@@ -114,7 +135,7 @@ export function LineChart(props: Props) {
         },
         plugins: {
           legend: {
-            display: props.datasets.length > 1,
+            display: props.showLegend ?? props.datasets.length > 1,
             position: "top" as const,
             labels: {
               usePointStyle: true,
@@ -154,7 +175,10 @@ export function LineChart(props: Props) {
               const label = dataPoint.label;
               const points = tooltip.dataPoints.map((dataPoint) => ({
                 name: dataPoint.dataset.label ?? "",
-                value: dataPoint.parsed.y ?? 0,
+                value: isStacked
+                  ? props.datasets[dataPoint.datasetIndex].data[dataPoint.dataIndex] ?? 0
+                  : dataPoint.parsed.y ?? 0,
+                percentage: stackMode === "filled" ? dataPoint.parsed.y ?? 0 : undefined,
               }));
 
               setTooltipDataPoint({ label, points });
@@ -182,7 +206,7 @@ export function LineChart(props: Props) {
         },
       },
     };
-  }, [props, colors]);
+  }, [props, colors, stackMode, isStacked]);
 
   return (
     <div className="h-60 md:h-80 w-full">
@@ -206,4 +230,11 @@ export function LineChart(props: Props) {
       )}
     </div>
   );
+}
+
+function withAlpha(color: string, alpha: number): string {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color);
+  if (!match) return color;
+  const [r, g, b] = match.slice(1).map((x) => parseInt(x, 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

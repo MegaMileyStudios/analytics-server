@@ -18,6 +18,7 @@ export type QueryParams = {
   eventName?: string;
   appVersion?: string;
   persistentUserId?: string;
+  propKey?: string;
 };
 
 export type TopNQueryChildrenProps = {
@@ -90,6 +91,64 @@ export type PeriodicStats = Array<{
 
 export function periodicStats(params: QueryParams): Promise<PeriodicStats> {
   return api.get<PeriodicStats>(`/_stats/periodic`, params);
+}
+
+export type EventPropType = "number" | "boolean" | "string";
+
+export type EventPropKey = {
+  key: string;
+  type: EventPropType;
+};
+
+export function eventPropKeys(params: QueryParams): Promise<EventPropKey[]> {
+  return api.get<EventPropKey[]>(`/_stats/event-prop-keys`, params);
+}
+
+export type EventPropNumericRow = {
+  period: string;
+  events: number;
+  min: number;
+  max: number;
+  avg: number;
+  median: number;
+  p95: number;
+  p99: number;
+  sum: number;
+};
+
+export function eventPropNumeric(params: QueryParams): Promise<EventPropNumericRow[]> {
+  return api.get<EventPropNumericRow[]>(`/_stats/event-prop-numeric`, params);
+}
+
+export type EventPropDistributionItem = {
+  name: string;
+  value: number;
+  isOther: boolean;
+  isUndefined: boolean;
+};
+
+export type EventPropDistribution = {
+  type: "boolean" | "string";
+  items: EventPropDistributionItem[];
+};
+
+export function eventPropDistribution(params: QueryParams): Promise<EventPropDistribution> {
+  return api.get<EventPropDistribution>(`/_stats/event-prop-distribution`, params);
+}
+
+export type EventPropDistributionSeries = {
+  type: "boolean" | "string";
+  periods: string[];
+  series: Array<{
+    name: string;
+    isOther: boolean;
+    isUndefined: boolean;
+    values: number[];
+  }>;
+};
+
+export function eventPropDistributionPeriodic(params: QueryParams): Promise<EventPropDistributionSeries> {
+  return api.get<EventPropDistributionSeries>(`/_stats/event-prop-distribution-periodic`, params);
 }
 
 export type CohortGranularity = "day" | "week" | "month";

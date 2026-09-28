@@ -1,0 +1,32 @@
+-- Lists the property keys sent with an event and their type.
+-- Numbers are stored in numeric_props, everything else in string_props (booleans as 'true'/'false'),
+-- so a string key is a boolean when every value seen is 'true' or 'false'.
+-- A key sent with different types by different events is returned once for each type.
+SELECT Key, Type FROM (
+    SELECT kv.1 AS Key,
+           if(countIf(kv.2 NOT IN ('true', 'false')) = 0, 'boolean', 'string') AS Type
+    FROM (
+        SELECT JSONExtractKeysAndValues(string_props, 'String') AS props
+        FROM events
+        PREWHERE app_id = '{{app_id}}'
+        WHERE event_name = '{{event_name}}'
+        {% if date_from and date_to %}
+        AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+        {% endif %}
+    ) ARRAY JOIN props AS kv
+    GROUP BY Key
+    UNION ALL
+    SELECT kv.1 AS Key,
+           'number' AS Type
+    FROM (
+        SELECT JSONExtractKeysAndValues(numeric_props, 'Float') AS props
+        FROM events
+        PREWHERE app_id = '{{app_id}}'
+        WHERE event_name = '{{event_name}}'
+        {% if date_from and date_to %}
+        AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+        {% endif %}
+    ) ARRAY JOIN props AS kv
+    GROUP BY Key
+)
+ORDER BY Key ASC, Type ASC

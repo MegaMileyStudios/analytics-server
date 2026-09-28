@@ -110,4 +110,13 @@ public class AccountClient
 
         return await _client.GetAsync(url);
     }
+
+    public async Task<HttpResponseMessage> GetEventPropStats(string endpoint, string appId, string eventName, string? propKey, DateTime startDate, DateTime endDate, string granularity = "Day", string buildMode = "release")
+    {
+        var url = $"/api/_stats/{endpoint}?buildMode={buildMode}&appId={appId}&eventName={Uri.EscapeDataString(eventName)}&startDate={startDate:o}&endDate={endDate:o}&granularity={granularity}";
+        if (propKey != null)
+            url += $"&propKey={Uri.EscapeDataString(propKey)}";
+
+        return await _client.GetAsync(url);
+    }
 }

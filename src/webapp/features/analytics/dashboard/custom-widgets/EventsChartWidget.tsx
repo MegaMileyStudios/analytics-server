@@ -4,7 +4,7 @@ import { EventNameFilterDropdown } from "@features/analytics/sessions/filters/Ev
 import { useApps } from "@features/apps";
 import { formatPeriod } from "@fns/format-date";
 import { formatNumber } from "@fns/format-number";
-import { IconWand } from "@tabler/icons-react";
+import { IconChartBar, IconWand } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
@@ -95,6 +95,17 @@ export function EventsChartWidget(props: Props) {
     });
   };
 
+  const definePropertyChartClick = () => {
+    setWidgetsConfig({
+      widgetId: eventsChartWidgetConfig.id,
+      type: "change-type",
+      widgetType: "custom-property-chart",
+      properties: {},
+      appId: props.appId,
+    });
+    defineChartClick();
+  };
+
   const {
     isLoading,
     isError,
@@ -177,10 +188,17 @@ export function EventsChartWidget(props: Props) {
   if (!eventsChartWidgetConfig.isDefined) {
     return (
       <div className="flex flex-col gap-2">
-        <Button variant="outline" className="w-full" onClick={defineChartClick}>
-          <IconWand className="mr-2 h-4 w-4" />
-          Create a custom chart
-        </Button>
+        <p className="text-sm text-muted-foreground">Create a custom chart</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" className="w-full" onClick={defineChartClick}>
+            <IconWand className="mr-2 h-4 w-4" />
+            Event counts
+          </Button>
+          <Button variant="outline" className="w-full" onClick={definePropertyChartClick}>
+            <IconChartBar className="mr-2 h-4 w-4" />
+            Event property
+          </Button>
+        </div>
       </div>
     );
   }

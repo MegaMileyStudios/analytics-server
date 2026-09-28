@@ -1,4 +1,5 @@
 import {
+  ArcElement,
   BarController,
   BarElement,
   CategoryScale,
@@ -10,6 +11,7 @@ import {
   LinearScale,
   LineController,
   LineElement,
+  PieController,
   PointElement,
   Tooltip,
 } from "chart.js";
@@ -23,10 +25,12 @@ export { type LineAnnotationOptions } from "chartjs-plugin-annotation";
 ChartJS.defaults.font.family = "'Inter var', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
 
 ChartJS.register(
+  ArcElement,
   BarController,
   BarElement,
   LineController,
   LineElement,
+  PieController,
   PointElement,
   CategoryScale,
   LinearScale,

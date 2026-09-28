@@ -75,6 +75,157 @@ public record EventPropsItem
     public decimal Sum { get; set; }
 }
 
+public record EventPropKey
+{
+    public string Key { get; set; } = "";
+    public string Type { get; set; } = "";
+}
+
+public record EventPropNumericRow
+{
+    public DateTime Period { get; set; }
+    public int Events { get; set; }
+    public double Min { get; set; }
+    public double Max { get; set; }
+    public double Avg { get; set; }
+    public double Median { get; set; }
+    public double P95 { get; set; }
+    public double P99 { get; set; }
+    public double Sum { get; set; }
+}
+
+public record EventPropValueRow
+{
+    public int Undefined { get; set; }
+    public string Value { get; set; } = "";
+    public int Events { get; set; }
+}
+
+public record EventPropDistributionItem
+{
+    public string Name { get; set; } = "";
+    public int Value { get; set; }
+    public bool IsOther { get; set; }
+    public bool IsUndefined { get; set; }
+}
+
+public record EventPropDistribution
+{
+    public const int MaxItems = 10;
+
+    public string Type { get; set; } = "string";
+    public EventPropDistributionItem[] Items { get; set; } = Array.Empty<EventPropDistributionItem>();
+
+    // Booleans are always True, False and Undefined. Strings show up to 10 values,
+    // when there are more the top 9 are kept and the rest is summed up as Other.
+    public static EventPropDistribution FromRows(IEnumerable<EventPropValueRow> rows)
+    {
+        var defined = rows.Where(r => r.Undefined == 0)
+            .OrderByDescending(r => r.Events)
+            .ThenBy(r => r.Value, StringComparer.Ordinal)
+            .ToArray();
+        var undefinedEvents = rows.Where(r => r.Undefined != 0).Sum(r => r.Events);
+
+        if (defined.Length > 0 && defined.All(r => r.Value is "true" or "false"))
+        {
+            return new EventPropDistribution
+            {
+                Type = "boolean",
+                Items = new[]
+                {
+                    new EventPropDistributionItem { Name = "True", Value = defined.Where(r => r.Value == "true").Sum(r => r.Events) },
+                    new EventPropDistributionItem { Name = "False", Value = defined.Where(r => r.Value == "false").Sum(r => r.Events) },
+                    new EventPropDistributionItem { Name = "Undefined", Value = undefinedEvents, IsUndefined = true },
+                },
+            };
+        }
+
+        var items = defined.Select(r => new EventPropDistributionItem { Name = r.Value, Value = r.Events });
+        if (defined.Length > MaxItems)
+        {
+            items = items.Take(MaxItems - 1).Append(new EventPropDistributionItem
+            {
+                Name = "Other",
+                Value = defined.Skip(MaxItems - 1).Sum(r => r.Events),
+                IsOther = true,
+            });
+        }
+
+        return new EventPropDistribution { Type = "string", Items = items.ToArray() };
+    }
+}
+
+public record EventPropPeriodicValueRow
+{
+    public DateTime Period { get; set; }
+    public int Undefined { get; set; }
+    public string Value { get; set; } = "";
+    public int Events { get; set; }
+}
+
+public record EventPropDistributionSeriesItem
+{
+    public string Name { get; set; } = "";
+    public bool IsOther { get; set; }
+    public bool IsUndefined { get; set; }
+    public int[] Values { get; set; } = Array.Empty<int>();
+}
+
+public record EventPropDistributionSeries
+{
+    public string Type { get; set; } = "string";
+    public DateTime[] Periods { get; set; } = Array.Empty<DateTime>();
+    public EventPropDistributionSeriesItem[] Series { get; set; } = Array.Empty<EventPropDistributionSeriesItem>();
+
+    public static EventPropDistributionSeries FromRows(IEnumerable<EventPropPeriodicValueRow> rows)
+    {
+        var all = rows.ToArray();
+        var periods = all.Select(r => r.Period).Distinct().OrderBy(p => p).ToArray();
+        var periodIndex = periods.Select((p, i) => (p, i)).ToDictionary(x => x.p, x => x.i);
+
+        var withEvents = all.Where(r => r.Events > 0).ToArray();
+        var totals = withEvents
+            .GroupBy(r => (r.Undefined, r.Value))
+            .Select(g => new EventPropValueRow { Undefined = g.Key.Undefined, Value = g.Key.Value, Events = g.Sum(r => r.Events) });
+        var distribution = EventPropDistribution.FromRows(totals);
+        var isBoolean = distribution.Type == "boolean";
+
+        var series = distribution.Items
+            .Select(item => new EventPropDistributionSeriesItem
+            {
+                Name = item.Name,
+                IsOther = item.IsOther,
+                IsUndefined = item.IsUndefined,
+                Values = new int[periods.Length],
+            })
+            .ToArray();
+        var namedIndex = distribution.Items
+            .Select((item, i) => (item, i))
+            .Where(x => !x.item.IsOther && !x.item.IsUndefined)
+            .ToDictionary(x => x.item.Name, x => x.i);
+        var otherIndex = Array.FindIndex(distribution.Items, x => x.IsOther);
+
+        int? SeriesOf(EventPropPeriodicValueRow row)
+        {
+            if (isBoolean)
+                return row.Undefined != 0 ? 2 : row.Value == "true" ? 0 : 1;
+            if (row.Undefined != 0)
+                return null;
+            if (namedIndex.TryGetValue(row.Value, out var index))
+                return index;
+            return otherIndex >= 0 ? otherIndex : null;
+        }
+
+        foreach (var row in withEvents)
+        {
+            if (SeriesOf(row) is int index)
+                series[index].Values[periodIndex[row.Period]] += row.Events;
+        }
+
+        return new EventPropDistributionSeries { Type = distribution.Type, Periods = periods, Series = series };
+    }
+}
+
 public record LiveGeoDataPoint
 {
     public string CountryCode { get; set; } = "";
@@ -183,6 +334,7 @@ public record QueryArgs
     public string? EventName { get; set; }
     public string? AppVersion { get; set; }
     public string? PersistentUserId { get; set; }
+    public string? PropKey { get; set; }
 
     public QueryArgs CloneToPreviousInterval()
     {
@@ -212,6 +364,7 @@ public record QueryArgs
             EventName = EventName,
             AppVersion = AppVersion,
             PersistentUserId = PersistentUserId,
+            PropKey = PropKey,
         };
     }
 }
@@ -230,6 +383,7 @@ public class QueryParams
     public string? AppVersion { get; set; }
     public string? DeviceModel { get; set; }
     public string? PersistentUserId { get; set; }
+    public string? PropKey { get; set; }
 
     public QueryArgs Parse()
     {
@@ -252,6 +406,7 @@ public class QueryParams
             EventName = EventName,
             AppVersion = AppVersion,
             PersistentUserId = PersistentUserId,
+            PropKey = PropKey,
         };
     }
 }
@@ -369,6 +524,92 @@ public class StatsController : Controller
         }, cancellationToken);
 
         return Ok(rows);
+    }
+
+    // The event property charts query the props JSON directly, which the Tinybird pipes don't support
+    [HttpGet("/api/_stats/event-prop-keys")]
+    public async Task<IActionResult> EventPropKeys([FromQuery] QueryParams body, CancellationToken cancellationToken)
+    {
+        var query = body.Parse();
+        if (string.IsNullOrEmpty(query.EventName))
+            return BadRequest("eventName is required.");
+
+        if (_queryClient is TinybirdQueryClient)
+            return Ok(Array.Empty<EventPropKey>());
+
+        var rows = await _queryClient.NamedQueryAsync<EventPropKey>("event_prop_keys__v1", new {
+            date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
+            date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
+            app_id = query.AppId,
+            event_name = query.EventName,
+        }, cancellationToken);
+
+        return Ok(rows);
+    }
+
+    [HttpGet("/api/_stats/event-prop-numeric")]
+    public async Task<IActionResult> EventPropNumeric([FromQuery] QueryParams body, CancellationToken cancellationToken)
+    {
+        var query = body.Parse();
+        if (string.IsNullOrEmpty(query.EventName) || string.IsNullOrEmpty(query.PropKey))
+            return BadRequest("eventName and propKey are required.");
+
+        if (_queryClient is TinybirdQueryClient)
+            return Ok(Array.Empty<EventPropNumericRow>());
+
+        var rows = await _queryClient.NamedQueryAsync<EventPropNumericRow>("event_prop_numeric_periodic__v1", new {
+            date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
+            date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
+            granularity = (query.Granularity ?? GranularityEnum.Hour).ToString(),
+            app_id = query.AppId,
+            event_name = query.EventName,
+            prop_key = query.PropKey,
+        }, cancellationToken);
+
+        return Ok(rows);
+    }
+
+    [HttpGet("/api/_stats/event-prop-distribution")]
+    public async Task<IActionResult> EventPropDistributionStats([FromQuery] QueryParams body, CancellationToken cancellationToken)
+    {
+        var query = body.Parse();
+        if (string.IsNullOrEmpty(query.EventName) || string.IsNullOrEmpty(query.PropKey))
+            return BadRequest("eventName and propKey are required.");
+
+        if (_queryClient is TinybirdQueryClient)
+            return Ok(new EventPropDistribution());
+
+        var rows = await _queryClient.NamedQueryAsync<EventPropValueRow>("event_prop_distribution__v1", new {
+            date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
+            date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
+            app_id = query.AppId,
+            event_name = query.EventName,
+            prop_key = query.PropKey,
+        }, cancellationToken);
+
+        return Ok(EventPropDistribution.FromRows(rows));
+    }
+
+    [HttpGet("/api/_stats/event-prop-distribution-periodic")]
+    public async Task<IActionResult> EventPropDistributionPeriodic([FromQuery] QueryParams body, CancellationToken cancellationToken)
+    {
+        var query = body.Parse();
+        if (string.IsNullOrEmpty(query.EventName) || string.IsNullOrEmpty(query.PropKey))
+            return BadRequest("eventName and propKey are required.");
+
+        if (_queryClient is TinybirdQueryClient)
+            return Ok(new EventPropDistributionSeries());
+
+        var rows = await _queryClient.NamedQueryAsync<EventPropPeriodicValueRow>("event_prop_distribution_periodic__v1", new {
+            date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
+            date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
+            granularity = (query.Granularity ?? GranularityEnum.Hour).ToString(),
+            app_id = query.AppId,
+            event_name = query.EventName,
+            prop_key = query.PropKey,
+        }, cancellationToken);
+
+        return Ok(EventPropDistributionSeries.FromRows(rows));
     }
 
     [HttpGet("/api/_stats/live-geo")]
