@@ -37,9 +37,16 @@ export function CurrentFilters() {
   const appVersion = searchParams.get("appVersion") || "";
   const eventName = searchParams.get("eventName") || "";
   const osName = searchParams.get("osName") || "";
+  const mainView = searchParams.get("mainView") || "";
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
+      {mainView && (
+        <FilterChip removeProperty="mainView">
+          <span>View =</span>
+          <span className="font-bold">{mainView}</span>
+        </FilterChip>
+      )}
       {eventName && (
         <FilterChip removeProperty="eventName">
           <span>Event =</span>

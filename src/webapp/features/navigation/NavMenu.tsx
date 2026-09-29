@@ -9,6 +9,7 @@ import {
   IconGraph,
   IconLayoutGrid,
   IconRepeat,
+  IconStack2,
   IconSettings,
   IconUsers,
 } from "@tabler/icons-react";
@@ -44,6 +45,13 @@ export function NavMenu(props: { onNavigation?: VoidFunction }) {
             disabled={!currentApp || !!currentApp.lockReason}
             href={`/${currentApp?.id}/sessions`}
             icon={IconUsers}
+            onNavigation={props.onNavigation}
+          />
+          <NavItem
+            label="Views"
+            disabled={!currentApp || !!currentApp.lockReason}
+            href={`/${currentApp?.id}/views`}
+            icon={IconStack2}
             onNavigation={props.onNavigation}
           />
           <NavItem

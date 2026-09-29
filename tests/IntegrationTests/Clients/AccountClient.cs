@@ -121,4 +121,17 @@ public class AccountClient
 
         return await _client.GetAsync(url);
     }
+
+    public async Task<HttpResponseMessage> GetViewStats(string kind, string appId, DateTime startDate, DateTime endDate, string buildMode = "release", string? mainView = null, string? osName = null, string? appVersion = null)
+    {
+        var url = $"/api/_stats/views/{kind}?buildMode={buildMode}&appId={appId}&startDate={startDate:o}&endDate={endDate:o}";
+        if (mainView != null)
+            url += $"&mainView={Uri.EscapeDataString(mainView)}";
+        if (osName != null)
+            url += $"&osName={Uri.EscapeDataString(osName)}";
+        if (appVersion != null)
+            url += $"&appVersion={Uri.EscapeDataString(appVersion)}";
+
+        return await _client.GetAsync(url);
+    }
 }

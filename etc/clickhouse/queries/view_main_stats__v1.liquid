@@ -1,0 +1,58 @@
+-- Time spent per main view. A main view lasts until the next MainScreenChange of the
+-- session, or until the session's last activity (view or regular event). Rows are read
+-- up to a day past date_to so views that start in the range still get their real end.
+WITH
+views AS (
+    SELECT session_id, view_type, view_name, timestamp
+    FROM view_events
+    PREWHERE app_id = '{{app_id}}'
+    WHERE timestamp >= toDateTime64('{{date_from}}', 3)
+    AND timestamp < toDateTime64('{{date_to}}', 3) + INTERVAL 1 DAY
+    {% if country_code %}
+    AND country_code = '{{country_code}}'
+    {% endif %}
+    {% if os_name %}
+    AND os_name = '{{os_name}}'
+    {% endif %}
+    {% if app_version %}
+    AND app_version = '{{app_version}}'
+    {% endif %}
+),
+session_ends AS (
+    SELECT session_id, max(ts) AS ended_at
+    FROM (
+        SELECT session_id, timestamp AS ts FROM views
+        UNION ALL
+        SELECT session_id, toDateTime64(timestamp, 3) AS ts
+        FROM events
+        PREWHERE app_id = '{{app_id}}'
+        WHERE timestamp >= toDateTime('{{date_from}}')
+        AND timestamp < toDateTime('{{date_to}}') + INTERVAL 1 DAY
+        AND session_id IN (SELECT session_id FROM views)
+    )
+    GROUP BY session_id
+),
+mains AS (
+    SELECT session_id,
+           view_name,
+           timestamp AS started_at,
+           leadInFrame(toNullable(timestamp)) OVER (PARTITION BY session_id ORDER BY timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS next_at
+    FROM views
+    WHERE view_type = 'MainScreenChange'
+)
+SELECT view_name AS Name,
+       count() AS Visits,
+       uniqExact(session_id) AS Sessions,
+       sum(duration) AS TotalSeconds,
+       avg(duration) AS AvgSeconds,
+       quantileExactInclusive(0.5)(duration) AS MedianSeconds
+FROM (
+    SELECT m.session_id AS session_id,
+           m.view_name AS view_name,
+           greatest(0, dateDiff('millisecond', m.started_at, ifNull(m.next_at, e.ended_at))) / 1000 AS duration
+    FROM mains AS m
+    LEFT JOIN session_ends AS e ON m.session_id = e.session_id
+    WHERE m.started_at BETWEEN toDateTime64('{{date_from}}', 3) AND toDateTime64('{{date_to}}', 3)
+)
+GROUP BY view_name
+ORDER BY TotalSeconds DESC, Name ASC

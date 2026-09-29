@@ -20,6 +20,7 @@ export type QueryParams = {
   persistentUserId?: string;
   propKey?: string;
   pageSize?: number;
+  mainView?: string;
 };
 
 export type TopNQueryChildrenProps = {
@@ -234,8 +235,40 @@ export type SessionTimeline = {
   eventsTimestamp: string[];
   eventsStringProps: string[];
   eventsNumericProps: string[];
+  viewsType?: string[];
+  viewsName?: string[];
+  viewsTimestamp?: string[];
 };
 
 export function liveSessionDetails(params: QueryParams): Promise<LiveRecentSession & SessionTimeline> {
   return api.get<LiveRecentSession & SessionTimeline>(`/_stats/live-session-details`, params);
+}
+
+export type ViewStatsRow = {
+  name: string;
+  visits: number;
+  sessions: number;
+  totalSeconds: number;
+  avgSeconds: number;
+  medianSeconds: number;
+};
+
+export function viewMainStats(params: QueryParams): Promise<ViewStatsRow[]> {
+  return api.get<ViewStatsRow[]>(`/_stats/views/main`, params);
+}
+
+export function viewPopupStats(params: QueryParams): Promise<ViewStatsRow[]> {
+  return api.get<ViewStatsRow[]>(`/_stats/views/popups`, params);
+}
+
+export function viewTopCountries(params: QueryParams): Promise<TopNItem[]> {
+  return api.get<TopNItem[]>(`/_stats/views/top-countries`, params);
+}
+
+export function viewTopOperatingSystems(params: QueryParams): Promise<TopNItem[]> {
+  return api.get<TopNItem[]>(`/_stats/views/top-operatingsystems`, params);
+}
+
+export function viewTopAppVersions(params: QueryParams): Promise<TopNItem[]> {
+  return api.get<TopNItem[]>(`/_stats/views/top-appversions`, params);
 }

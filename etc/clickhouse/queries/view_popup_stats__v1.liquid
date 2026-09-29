@@ -1,0 +1,90 @@
+-- Time spent per popup. A popup lasts until the earliest of: the next PopupClose with the
+-- same name, the next MainScreenChange (which implicitly closes every open popup), or the
+-- session's last activity. Its main view is the one active when it was opened, so a
+-- popup stacked on another popup still belongs to the main view underneath.
+WITH
+views AS (
+    SELECT session_id, view_type, view_name, timestamp
+    FROM view_events
+    PREWHERE app_id = '{{app_id}}'
+    WHERE timestamp >= toDateTime64('{{date_from}}', 3)
+    AND timestamp < toDateTime64('{{date_to}}', 3) + INTERVAL 1 DAY
+    {% if country_code %}
+    AND country_code = '{{country_code}}'
+    {% endif %}
+    {% if os_name %}
+    AND os_name = '{{os_name}}'
+    {% endif %}
+    {% if app_version %}
+    AND app_version = '{{app_version}}'
+    {% endif %}
+),
+session_ends AS (
+    SELECT session_id, max(ts) AS ended_at
+    FROM (
+        SELECT session_id, timestamp AS ts FROM views
+        UNION ALL
+        SELECT session_id, toDateTime64(timestamp, 3) AS ts
+        FROM events
+        PREWHERE app_id = '{{app_id}}'
+        WHERE timestamp >= toDateTime('{{date_from}}')
+        AND timestamp < toDateTime('{{date_to}}') + INTERVAL 1 DAY
+        AND session_id IN (SELECT session_id FROM views)
+    )
+    GROUP BY session_id
+),
+mains AS (
+    SELECT session_id,
+           view_name AS main_view,
+           timestamp AS started_at,
+           leadInFrame(toNullable(timestamp)) OVER (PARTITION BY session_id ORDER BY timestamp ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS next_main_at
+    FROM views
+    WHERE view_type = 'MainScreenChange'
+),
+-- Pairs every open with the row that follows it for the same popup name. When that row is
+-- a close it's the explicit close, when it's another open the first one was never closed.
+-- Opens sort before closes that share the exact same timestamp.
+popups AS (
+    SELECT session_id,
+           view_name,
+           view_type,
+           timestamp,
+           leadInFrame(toNullable(view_type)) OVER w AS next_type,
+           leadInFrame(toNullable(timestamp)) OVER w AS next_at
+    FROM views
+    WHERE view_type IN ('PopupOpen', 'PopupClose')
+    WINDOW w AS (PARTITION BY session_id, view_name ORDER BY timestamp, view_type = 'PopupClose' ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING)
+),
+opens AS (
+    SELECT session_id,
+           view_name,
+           timestamp AS opened_at,
+           if(next_type = 'PopupClose', next_at, NULL) AS closed_at
+    FROM popups
+    WHERE view_type = 'PopupOpen'
+)
+SELECT view_name AS Name,
+       count() AS Visits,
+       uniqExact(session_id) AS Sessions,
+       sum(duration) AS TotalSeconds,
+       avg(duration) AS AvgSeconds,
+       quantileExactInclusive(0.5)(duration) AS MedianSeconds
+FROM (
+    SELECT o.session_id AS session_id,
+           o.view_name AS view_name,
+           m.main_view AS main_view,
+           greatest(0, dateDiff('millisecond', o.opened_at, least(
+               ifNull(o.closed_at, e.ended_at),
+               ifNull(m.next_main_at, e.ended_at),
+               e.ended_at
+           ))) / 1000 AS duration
+    FROM opens AS o
+    ASOF LEFT JOIN mains AS m ON o.session_id = m.session_id AND o.opened_at >= m.started_at
+    LEFT JOIN session_ends AS e ON o.session_id = e.session_id
+    WHERE o.opened_at BETWEEN toDateTime64('{{date_from}}', 3) AND toDateTime64('{{date_to}}', 3)
+)
+{% if main_view %}
+WHERE main_view = '{{main_view}}'
+{% endif %}
+GROUP BY view_name
+ORDER BY TotalSeconds DESC, Name ASC

@@ -54,6 +54,11 @@ for batch in 1 2; do
 done
 ch -q "INSERT INTO error_events (error_id, app_id, timestamp, error_message, ttl)
        SELECT toString(number), 'app_0', now() - number, 'Boom', now() + INTERVAL 1 YEAR FROM numbers(42)"
+# Millisecond timestamps, since view durations depend on the DateTime64 precision surviving the round trip
+ch -q "INSERT INTO view_events (app_id, timestamp, session_id, view_type, view_name, ttl)
+       SELECT 'app_0', now64(3) - toIntervalMillisecond(number * 250), toString(number % 7),
+              ['MainScreenChange', 'PopupOpen', 'PopupClose'][number % 3 + 1], 'Pause ''menu''', now() + INTERVAL 1 YEAR
+       FROM numbers(77)"
 docker exec -i "$id-postgres" psql -v ON_ERROR_STOP=1 -q -U aptabase -d aptabase <<'SQL'
 CREATE TABLE owners (id text PRIMARY KEY, name text NOT NULL);
 CREATE TABLE apps (id text PRIMARY KEY, owner_id text NOT NULL REFERENCES owners(id), name text, props jsonb);
@@ -63,7 +68,8 @@ SQL
 expected="postgres public.owners 3
 postgres public.apps 250
 clickhouse events 1500
-clickhouse error_events 42"
+clickhouse error_events 42
+clickhouse view_events 77"
 
 echo "Generating a throwaway age key"
 docker run --rm --entrypoint age-keygen "$TEST_BACKUP_IMAGE" > "$workdir/key.txt" 2> /dev/null

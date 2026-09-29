@@ -1,6 +1,7 @@
 using Aptabase.Features.Authentication;
 using Aptabase.Features.GeoIP;
 using Aptabase.Features.Privacy;
+using Aptabase.Features.ViewTracking;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -268,6 +269,9 @@ public record SessionTimeline
     public DateTime[] EventsTimestamp { get; set; } = Array.Empty<DateTime>();
     public string[] EventsStringProps { get; set; } = Array.Empty<string>();
     public string[] EventsNumericProps { get; set; } = Array.Empty<string>();
+    public string[] ViewsType { get; set; } = Array.Empty<string>();
+    public string[] ViewsName { get; set; } = Array.Empty<string>();
+    public DateTime[] ViewsTimestamp { get; set; } = Array.Empty<DateTime>();
 }
 
 public record RetentionRow
@@ -652,6 +656,19 @@ public class StatsController : Controller
             app_id = query.AppId,
             session_id = query.SessionId,
         }, cancellationToken);
+
+        // View events live in their own table, which only exists on ClickHouse
+        if (_queryClient is not TinybirdQueryClient)
+        {
+            var views = (await _queryClient.NamedQueryAsync<SessionViewEvent>("session_view_events__v1", new {
+                app_id = query.AppId,
+                session_id = query.SessionId,
+            }, cancellationToken)).ToArray();
+
+            row.ViewsType = views.Select(v => v.ViewType).ToArray();
+            row.ViewsName = views.Select(v => v.ViewName).ToArray();
+            row.ViewsTimestamp = views.Select(v => v.Timestamp).ToArray();
+        }
 
         return Ok(row);
     }

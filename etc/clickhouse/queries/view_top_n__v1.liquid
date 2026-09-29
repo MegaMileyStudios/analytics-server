@@ -1,0 +1,16 @@
+SELECT {{name_column}} AS Name,
+       uniqExact(session_id) AS Value
+FROM view_events
+PREWHERE app_id = '{{app_id}}'
+WHERE timestamp BETWEEN toDateTime64('{{date_from}}', 3) AND toDateTime64('{{date_to}}', 3)
+{% if country_code %}
+AND country_code = '{{country_code}}'
+{% endif %}
+{% if os_name %}
+AND os_name = '{{os_name}}'
+{% endif %}
+{% if app_version %}
+AND app_version = '{{app_version}}'
+{% endif %}
+GROUP BY Name
+ORDER BY Value DESC, Name ASC

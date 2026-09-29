@@ -1,0 +1,7 @@
+SELECT view_type AS ViewType,
+       view_name AS ViewName,
+       timestamp AS Timestamp
+FROM view_events
+PREWHERE app_id = '{{app_id}}'
+WHERE session_id = '{{session_id}}'
+ORDER BY timestamp ASC, view_type = 'PopupClose' ASC

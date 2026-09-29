@@ -97,30 +97,9 @@ public class EventBody
 
     public (bool, string) IsValid(ILogger logger)
     {
-        var (valid, msg) = ValidateSessionId(logger);
+        var (valid, msg) = ValidateSystemFields(SessionId, Timestamp, SystemProps, logger);
         if (!valid)
             return (false, msg);
-
-        if (Timestamp > DateTime.UtcNow.AddMinutes(10))
-            return (false, "Future events are not allowed.");
-
-        if (!PersistentUserId.TryNormalize(SystemProps.UserId, out var userId))
-            return (false, PersistentUserId.InvalidMessage);
-
-        SystemProps.UserId = userId;
-
-        var maxAge = SystemProps.UserId is null ? MaxEventAge : MaxPersistentUserEventAge;
-        if (Timestamp < DateTime.UtcNow - maxAge)
-        {
-            logger.LogWarning("Event timestamp {EventTimestamp} is too old.", Timestamp);
-            return (false, "Event is too old.");
-        }
-
-        var locale = LocaleFormatter.FormatLocale(SystemProps.Locale);
-        if (locale is null)
-            logger.LogWarning("Invalid locale {Locale} received from {OS} using {SdkVersion}", locale, SystemProps.OSName, SystemProps.SdkVersion);
-
-        SystemProps.Locale = locale;
 
         (valid, msg) = ValidateProps();
         if (!valid)
@@ -129,31 +108,63 @@ public class EventBody
         return (true, string.Empty);
     }
 
-    private (bool, string) ValidateSessionId(ILogger logger)
+    // Validates and normalizes the fields shared by everything the SDKs send alongside a session
+    // (events and view events), so both endpoints accept and reject the same input.
+    public static (bool, string) ValidateSystemFields(string sessionId, DateTime timestamp, SystemProperties systemProps, ILogger logger)
     {
-        if (ulong.TryParse(SessionId, out var numericSessionId))
-            return ValidateNumericSessionId(numericSessionId, logger);
-        
-        if (SessionId.Length > 36)
-            return (false, $"SessionId must be less than or equal to 36 characters, was: {SessionId}");
+        var (valid, msg) = ValidateSessionId(sessionId, systemProps, logger);
+        if (!valid)
+            return (false, msg);
+
+        if (timestamp > DateTime.UtcNow.AddMinutes(10))
+            return (false, "Future events are not allowed.");
+
+        if (!PersistentUserId.TryNormalize(systemProps.UserId, out var userId))
+            return (false, PersistentUserId.InvalidMessage);
+
+        systemProps.UserId = userId;
+
+        var maxAge = systemProps.UserId is null ? MaxEventAge : MaxPersistentUserEventAge;
+        if (timestamp < DateTime.UtcNow - maxAge)
+        {
+            logger.LogWarning("Event timestamp {EventTimestamp} is too old.", timestamp);
+            return (false, "Event is too old.");
+        }
+
+        var locale = LocaleFormatter.FormatLocale(systemProps.Locale);
+        if (locale is null)
+            logger.LogWarning("Invalid locale {Locale} received from {OS} using {SdkVersion}", locale, systemProps.OSName, systemProps.SdkVersion);
+
+        systemProps.Locale = locale;
 
         return (true, string.Empty);
     }
 
-    private (bool, string) ValidateNumericSessionId(ulong id, ILogger logger)
+    private static (bool, string) ValidateSessionId(string sessionId, SystemProperties systemProps, ILogger logger)
+    {
+        if (ulong.TryParse(sessionId, out var numericSessionId))
+            return ValidateNumericSessionId(numericSessionId, systemProps, logger);
+        
+        if (sessionId.Length > 36)
+            return (false, $"SessionId must be less than or equal to 36 characters, was: {sessionId}");
+
+        return (true, string.Empty);
+    }
+
+    private static (bool, string) ValidateNumericSessionId(ulong id, SystemProperties systemProps, ILogger logger)
     {
         var secondsSinceEpoch = id / 100_000_000;
         var sessionStartedAt = DateTimeOffset.FromUnixTimeSeconds((long)secondsSinceEpoch).UtcDateTime;
 
         if (sessionStartedAt > DateTime.UtcNow.AddMinutes(10))
         {
-            logger.LogWarning("Session {SessionId} timestamp {StartedAt} is in future, received from {SdkVersion}.", id, sessionStartedAt, SystemProps.SdkVersion);
+            logger.LogWarning("Session {SessionId} timestamp {StartedAt} is in future, received from {SdkVersion}.", id, sessionStartedAt, systemProps.SdkVersion);
             return (false, "Future sessions are not allowed.");
         }
 
         if (sessionStartedAt < DateTime.UtcNow.AddDays(-7))
         {
-            logger.LogWarning("Session {SessionId} timestamp {StartedAt} is too old, received from {SdkVersion}.", id, sessionStartedAt, SystemProps.SdkVersion);
+            logger.LogWarning("Session {SessionId} timestamp {StartedAt} is too old, received from {SdkVersion}.", id, sessionStartedAt, systemProps.SdkVersion);
             return (false, "Session is too old.");
         }
 

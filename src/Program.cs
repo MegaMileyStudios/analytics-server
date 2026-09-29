@@ -14,6 +14,7 @@ using Aptabase.Features.Ingestion.Buffer;
 using Aptabase.Features.Notification;
 using Aptabase.Features.Privacy;
 using Aptabase.Features.Stats;
+using Aptabase.Features.ViewTracking.Buffer;
 using ClickHouse.Client.ADO;
 using Features.Cache;
 using FluentMigrator.Runner;
@@ -148,9 +149,11 @@ public partial class Program
         builder.Services.AddSingleton<IBlobService, DatabaseBlobService>();
         builder.Services.AddSingleton<IEventBuffer, InMemoryEventBuffer>();
         builder.Services.AddSingleton<IErrorBuffer, InMemoryErrorBuffer>();
+        builder.Services.AddSingleton<IViewBuffer, InMemoryViewBuffer>();
         builder.Services.AddSingleton<IPiiSanitizer, PiiSanitizer>();
         builder.Services.AddHostedService<EventBackgroundWritter>();
         builder.Services.AddHostedService<ErrorBackgroundWritter>();
+        builder.Services.AddHostedService<ViewBackgroundWritter>();
         if (appEnv.ErrorQuotaEnabled)
             builder.Services.AddHostedService<ResetErrorCountCronJob>();
         builder.Services.AddHostedService<PurgeDailySaltsCronJob>();
@@ -175,6 +178,7 @@ public partial class Program
             builder.Services.AddSingleton<IIngestionClient, ClickHouseIngestionClient>();
             builder.Services.AddSingleton<IErrorIngestionClient, ClickHouseErrorIngestionClient>();
             builder.Services.AddSingleton<IErrorQueryClient, ClickHouseErrorQueryClient>();
+            builder.Services.AddSingleton<IViewIngestionClient, ClickHouseViewIngestionClient>();
         }
         else
         {
@@ -182,6 +186,7 @@ public partial class Program
             builder.Services.AddSingleton<IIngestionClient, TinybirdIngestionClient>();
             builder.Services.AddSingleton<IErrorIngestionClient, TinybirdErrorIngestionClient>();
             builder.Services.AddSingleton<IErrorQueryClient, TinybirdErrorQueryClient>();
+            builder.Services.AddSingleton<IViewIngestionClient, NoopViewIngestionClient>();
             builder.Services.AddHttpClient("Tinybird", client =>
             {
                 client.BaseAddress = new Uri(appEnv.TinybirdBaseUrl);
