@@ -35,10 +35,9 @@ export function Component() {
   }, []);
 
   const handleBack = () => {
+    // We came from a list in this app, so go back to that exact history entry (and page)
     if (location.state?.returnTo) {
-      navigate(location.state.returnTo.pathname + location.state.returnTo.search, {
-        state: { sessionFilters: location.state.sessionFilters },
-      });
+      navigate(-1);
     } else {
       navigate(`/${app.id}/live/`);
     }

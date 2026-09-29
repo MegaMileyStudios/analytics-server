@@ -142,6 +142,33 @@ public class StatsTests
     }
 
     [Fact]
+    public async Task Can_Limit_Historical_Sessions_Page_Size()
+    {
+        var (app, _) = await CreateAppWithUsers();
+
+        var response = await _fixture.UserA.GetHistoricalSessions(app.Id, pageSize: 2);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var sessions = await response.Content.ReadFromJsonAsync<LiveRecentSession[]>();
+        sessions.Should().HaveCount(2);
+
+        response = await _fixture.UserA.GetHistoricalSessions(app.Id);
+        sessions = await response.Content.ReadFromJsonAsync<LiveRecentSession[]>();
+        sessions.Should().HaveCount(6);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(51)]
+    public async Task Cant_Request_Invalid_Historical_Sessions_Page_Size(int pageSize)
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var response = await _fixture.UserA.GetHistoricalSessions(app.Id, pageSize: pageSize);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Session_Details_Include_Persistent_UserId()
     {
         var (app, sessionOfUserA) = await CreateAppWithUsers();

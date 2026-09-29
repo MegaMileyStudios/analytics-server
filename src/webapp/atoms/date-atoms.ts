@@ -14,7 +14,7 @@ import {
   sub,
 } from "date-fns";
 import { atom, Getter } from "jotai";
-import { locationAtom } from "./location-atoms";
+import { atomWithLocalAndUrlPersistence, locationAtom } from "./location-atoms";
 
 export const periodAtom = atomWithLocalAndUrlPersistence("period", "24h");
 
@@ -74,43 +74,6 @@ export const dateFilterValuesAtom = atom((get) => {
   const period = get(periodAtom);
   return mapPeriodToStartEnd(period, get);
 });
-
-function atomWithLocalAndUrlPersistence<T extends string | number | boolean>(key: string, initialValue: T) {
-  const defaultValue = localStorage.hasOwnProperty(key) ? decodeURIComponent(localStorage[key]) : initialValue;
-  const _local = atom(defaultValue);
-
-  return atom(
-    (get) => {
-      const searchParamValue = get(locationAtom).searchParams?.get(key);
-      if (searchParamValue) {
-        return decodeURIComponent(searchParamValue);
-      }
-
-      const localValue = get(_local);
-      if (typeof localValue === "string") {
-        return decodeURIComponent(localValue);
-      }
-      return localValue;
-    },
-    (get, set, newValue: T) => {
-      const storedValue = encodeURIComponent(newValue);
-      localStorage[key] = storedValue;
-      set(locationAtom, (prev) => {
-        let newSearchParams = new URLSearchParams([[key, storedValue]]);
-        if (prev.searchParams) {
-          newSearchParams = prev.searchParams;
-        }
-
-        newSearchParams.set(key, storedValue);
-        return {
-          ...prev,
-          searchParams: newSearchParams,
-        };
-      });
-      set(_local, storedValue);
-    }
-  );
-}
 
 function getGranularity(startDate: Date | undefined, endDate: Date | undefined) {
   if (!startDate || !endDate) {

@@ -2,6 +2,7 @@ import { AppsProvider } from "@features/apps";
 import { AuthProvider } from "@features/auth";
 import { createBrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";
+import { notifyLocationChanged } from "./atoms/location-atoms";
 import { AuthenticationLayout, ConsoleLayout } from "./layout";
 
 const router = createBrowserRouter([
@@ -81,5 +82,7 @@ const router = createBrowserRouter([
   },
   {},
 ]);
+
+router.subscribe(notifyLocationChanged);
 
 export default router;

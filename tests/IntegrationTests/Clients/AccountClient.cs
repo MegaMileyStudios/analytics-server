@@ -89,11 +89,13 @@ public class AccountClient
         return await _client.GetFromJsonAsync<LiveGeoDataPoint[]>($"/api/_stats/live-geo?buildMode=release&appId={appId}");
     }
 
-    public async Task<HttpResponseMessage> GetHistoricalSessions(string appId, string? persistentUserId = null)
+    public async Task<HttpResponseMessage> GetHistoricalSessions(string appId, string? persistentUserId = null, int? pageSize = null)
     {
         var url = $"/api/_stats/historical-sessions?buildMode=release&appId={appId}";
         if (persistentUserId != null)
             url += $"&persistentUserId={Uri.EscapeDataString(persistentUserId)}";
+        if (pageSize != null)
+            url += $"&pageSize={pageSize}";
 
         return await _client.GetAsync(url);
     }

@@ -37,4 +37,4 @@ ORDER BY StartedAt ASC, Id ASC
 {% else %}
 ORDER BY StartedAt DESC, Id DESC
 {% endif %}
-LIMIT 10
+LIMIT {{limit}}

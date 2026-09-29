@@ -34,7 +34,7 @@ ORDER BY StartedAt ASC, Id ASC
 {% else %}
 ORDER BY StartedAt DESC, Id DESC
 {% end %}
-LIMIT 10
+LIMIT {{Int32(limit, 10)}}
 
 
 TYPE endpoint

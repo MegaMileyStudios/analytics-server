@@ -19,6 +19,7 @@ export type QueryParams = {
   appVersion?: string;
   persistentUserId?: string;
   propKey?: string;
+  pageSize?: number;
 };
 
 export type TopNQueryChildrenProps = {

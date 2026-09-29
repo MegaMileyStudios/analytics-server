@@ -657,12 +657,15 @@ public class StatsController : Controller
     }
 
     [HttpGet("/api/_stats/historical-sessions")]
-    public async Task<IActionResult> HistoricalSessions([FromQuery] QueryParams body, CancellationToken cancellationToken)
+    public async Task<IActionResult> HistoricalSessions([FromQuery] QueryParams body, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
     {
         var query = body.Parse();
 
         if (!PersistentUserId.TryNormalize(query.PersistentUserId, out var persistentUserId))
             return BadRequest(PersistentUserId.InvalidMessage);
+
+        if (pageSize < 1 || pageSize > 50)
+            return BadRequest("pageSize must be between 1 and 50.");
 
         var row = await _queryClient.NamedQueryAsync<LiveRecentSession>("historical_sessions__v1", new
         {
@@ -675,6 +678,7 @@ public class StatsController : Controller
             app_version = query.AppVersion,
             country_code = query.CountryCode,
             persistent_user_id = persistentUserId,
+            limit = pageSize,
         }, cancellationToken);
 
         return Ok(row);

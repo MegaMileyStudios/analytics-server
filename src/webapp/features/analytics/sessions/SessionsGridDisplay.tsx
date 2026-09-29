@@ -11,10 +11,12 @@ import {
   IconMap,
   IconUser,
 } from "@tabler/icons-react";
+import { useSetAtom } from "jotai";
 import { MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { OSIcon } from "../dashboard/icons/os";
 import { LiveRecentSession } from "../query";
+import { sessionsCursorAtom } from "./session-list-atoms";
 
 export type SessionStartEndDateFilters = {
   startDate?: string;
@@ -26,11 +28,11 @@ type Props = {
   appId: string;
   sessions: LiveRecentSession[];
   isLoading: boolean;
-  sessionFilters?: SessionStartEndDateFilters;
 };
 
 export function SessionsGridDisplay(props: Props) {
   const navigate = useNavigate();
+  const setSessionsCursor = useSetAtom(sessionsCursorAtom);
   const sessions = props.sessions;
 
   const handleClick = (session: LiveRecentSession) => () => {
@@ -39,7 +41,6 @@ export function SessionsGridDisplay(props: Props) {
 
     navigate(`/${props.appId}/live/${session.id}`, {
       state: {
-        sessionFilters: props.sessionFilters,
         returnTo: {
           pathname: currentLocation.pathname,
           search: currentLocation.search,
@@ -51,7 +52,7 @@ export function SessionsGridDisplay(props: Props) {
   const handleUserIdClick = (persistentUserId: string) => (e: MouseEvent) => {
     // Don't open the session timeline, show all sessions of this user instead
     e.stopPropagation();
-    navigate(`/${props.appId}/sessions?userId=${encodeURIComponent(persistentUserId)}`);
+    setSessionsCursor({ userId: persistentUserId });
   };
 
   return (

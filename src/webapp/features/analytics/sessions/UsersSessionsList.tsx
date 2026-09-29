@@ -1,14 +1,14 @@
 import { Button } from "@components/Button";
-import { SessionStartEndDateFilters, SessionsGridDisplay } from "@features/analytics/sessions/SessionsGridDisplay";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@components/Select";
+import { SessionsGridDisplay } from "@features/analytics/sessions/SessionsGridDisplay";
 import { formatPersistentUserId } from "@fns/format-persistent-user-id";
 import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconX } from "@tabler/icons-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useAtom, useAtomValue } from "jotai";
+import { useEffect, useMemo, useState } from "react";
 import { QueryParams, historicalSessions } from "../query";
+import { SESSIONS_PAGE_SIZES, sessionsCursorAtom, sessionsPageSizeAtom, sessionsUserIdAtom } from "./session-list-atoms";
 import { UsersSessionsFilters } from "./UsersSessionsFilters";
-
-const SESSIONS_PAGE_SIZE = 10;
 
 type Props = {
   appId: string;
@@ -23,26 +23,14 @@ type TopFilterValue = {
 };
 
 export function UserSessionsList(props: Props) {
-  const location = useLocation();
-  const locationStateFilters = location.state?.sessionFilters;
-  const [dateFilters, setDateFilters] = useState<SessionStartEndDateFilters>(locationStateFilters || {});
+  const [dateFilters, setDateFilters] = useAtom(sessionsCursorAtom);
   const [topFilters, setTopFilters] = useState<TopFilterValue>({});
-  const [searchParams, setSearchParams] = useSearchParams();
-  const persistentUserId = searchParams.get("userId") || undefined;
-
-  // Start from the first page when switching to (or away from) a single user's sessions
-  const previousUserId = useRef(persistentUserId);
-  useEffect(() => {
-    if (previousUserId.current === persistentUserId) return;
-    previousUserId.current = persistentUserId;
-    setDateFilters({});
-  }, [persistentUserId]);
+  const persistentUserId = useAtomValue(sessionsUserIdAtom) || undefined;
+  const [pageSizeValue, setPageSize] = useAtom(sessionsPageSizeAtom);
+  const pageSize = SESSIONS_PAGE_SIZES.find((size) => size === Number(pageSizeValue)) ?? SESSIONS_PAGE_SIZES[0];
 
   const clearUserFilter = () => {
-    setSearchParams((params) => {
-      params.delete("userId");
-      return params;
-    });
+    setDateFilters({ userId: undefined });
   };
 
   const requestParams: QueryParams = useMemo(() => {
@@ -59,14 +47,15 @@ export function UserSessionsList(props: Props) {
       countryCode,
       appVersion,
       persistentUserId,
+      pageSize,
     };
 
     const params = Object.fromEntries(Object.entries(allParams).filter(([_, v]) => v != null));
     return params as QueryParams;
-  }, [props, dateFilters, topFilters, persistentUserId]);
+  }, [props, dateFilters, topFilters, persistentUserId, pageSize]);
 
   const { data, isSuccess, isPlaceholderData } = useQuery({
-    queryKey: ["historical-sessions", props.appId, props.buildMode, dateFilters, topFilters, persistentUserId],
+    queryKey: ["historical-sessions", props.appId, props.buildMode, dateFilters, topFilters, persistentUserId, pageSize],
     queryFn: () => historicalSessions(requestParams),
     placeholderData: keepPreviousData,
   });
@@ -78,10 +67,10 @@ export function UserSessionsList(props: Props) {
 
   // When we reach first page and hit previous one more time
   useEffect(() => {
-    if (isSuccess && sessions.length === 0 && dateFilters.startDate) {
-      setDateFilters({});
+    if (isSuccess && !isPlaceholderData && sessions.length === 0 && dateFilters.startDate) {
+      setDateFilters({}, { replace: true });
     }
-  }, [sessions]);
+  }, [data, isSuccess, isPlaceholderData]);
 
   // Data for pager
   const firstSession = sessions[0];
@@ -123,15 +112,22 @@ export function UserSessionsList(props: Props) {
         </div>
       )}
       <div className="mb-auto">
-        <SessionsGridDisplay
-          appId={props.appId}
-          sessions={sessions}
-          sessionFilters={dateFilters}
-          isLoading={isPlaceholderData}
-        />
+        <SessionsGridDisplay appId={props.appId} sessions={sessions} isLoading={isPlaceholderData} />
       </div>
 
-      <div className="flex justify-end mt-4 mr-16 ">
+      <div className="flex justify-end items-center mt-4 mr-16 ">
+        <Select value={pageSize.toString()} onValueChange={setPageSize}>
+          <SelectTrigger className="w-36 mr-4">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SESSIONS_PAGE_SIZES.map((size) => (
+              <SelectItem key={size} value={size.toString()}>
+                {size} per page
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {!!dateFilters.sessionId && (
           <Button disabled={isPlaceholderData} variant="ghost" onClick={firstPageClick}>
             <IconChevronsLeft></IconChevronsLeft>
@@ -144,7 +140,7 @@ export function UserSessionsList(props: Props) {
             Previous
           </Button>
         )}
-        {(sessions.length >= SESSIONS_PAGE_SIZE || isPlaceholderData) && (
+        {(sessions.length >= pageSize || isPlaceholderData) && (
           <Button disabled={isPlaceholderData} variant="ghost" onClick={nextPageClick}>
             Next
             <IconChevronRight></IconChevronRight>
