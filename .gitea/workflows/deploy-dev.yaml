@@ -15,13 +15,15 @@ jobs:
           ref: ${{ github.ref_name }}
           ssh-key: ${{ secrets.GIT_SSH_KEY }}
 
-      - name: Build Docker image
-        run: docker build -t analytics-server:latest .
+      - name: Build Docker images
+        run: |
+          docker build -t analytics-server:latest .
+          docker build -t analytics-backup:latest deploy/backup
 
-      - name: Save image to archive
-        run: docker save analytics-server:latest | gzip > analytics-server.tar.gz
+      - name: Save images to archive
+        run: docker save analytics-server:latest analytics-backup:latest | gzip > analytics-server.tar.gz
 
-      - name: Upload image + compose file to /opt/analytics
+      - name: Upload images + compose files to /opt/analytics
         uses: megamiley/ssh-upload@main
         with:
           host: ${{ secrets.DEV_SSH_HOST }}
@@ -31,6 +33,7 @@ jobs:
           transfers: |
             analytics-server.tar.gz | /opt/analytics/
             deploy/docker-compose.dev.yml | /opt/analytics/
+            deploy/clickhouse/backups.xml | /opt/analytics/
 
       - name: Load image and restart stack
         uses: megamiley/ssh-command@main
@@ -42,6 +45,8 @@ jobs:
           command: |
             cd /opt/analytics
             mv -f docker-compose.dev.yml docker-compose.yml
+            mkdir -p clickhouse
+            mv -f backups.xml clickhouse/backups.xml
             docker load -i analytics-server.tar.gz
             rm analytics-server.tar.gz
             docker compose up -d

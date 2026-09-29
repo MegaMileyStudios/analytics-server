@@ -1,0 +1,6 @@
+<!-- Allows BACKUP/RESTORE ... File('...') into the backup staging volume, used by the backup sidecar. -->
+<clickhouse>
+    <backups>
+        <allowed_path>/backups/</allowed_path>
+    </backups>
+</clickhouse>
