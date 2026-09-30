@@ -146,19 +146,19 @@ jobs:
           ssh-key: ${{ secrets.GIT_SSH_KEY }}
 
       - name: Remove internal links from the published history
+        env:
+          INTERNAL_DOMAIN: ${{ secrets.INTERNAL_DOMAIN }}
         run: |
-          host="${{ github.server_url }}"
-          host="${host#*://}"
-          host="${host%%/*}"
-          host="${host%%:*}"
-          domain="${host#*.}"
-          case "$domain" in *.*) ;; *) domain="$host" ;; esac
+          case "$INTERNAL_DOMAIN" in
+            *.*) ;;
+            *) echo "The INTERNAL_DOMAIN secret must be set to the internal domain (e.g. example.com), not publishing"; exit 1 ;;
+          esac
 
           if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
             git fetch --unshallow
           fi
           git branch -f mirror HEAD
-          sh deploy/mirror/sanitize-history.sh "$domain" mirror
+          sh deploy/mirror/sanitize-history.sh "$INTERNAL_DOMAIN" mirror
 
       - name: Push to public GitHub mirror
         env:
