@@ -25,7 +25,6 @@ import {
   eventPropKeys,
   eventPropNumeric,
   EventPropKey,
-  EventPropNumericRow,
   Granularity,
 } from "../../query";
 import { CategoryChart, CategoryDisplay } from "./CategoryChart";
@@ -51,9 +50,6 @@ const aggregationLabel = (aggregation: PropertyAggregation) =>
   AGGREGATIONS.find((x) => x.value === aggregation)?.label ?? aggregation;
 
 const seriesLabel = (series: PropertySeries) => `${aggregationLabel(series.aggregation)} of ${series.propKey}`;
-
-const seriesValue = (row: EventPropNumericRow, aggregation: PropertyAggregation): number | null =>
-  row.events === 0 && aggregation !== "sum" ? null : row[aggregation];
 
 export function PropertyChartWidget(props: Props) {
   const { buildMode } = useApps();
@@ -398,7 +394,7 @@ function NumericPropertyChart(props: {
   const labels = (rows[0] ?? []).map((x) => x.period);
   const datasets = props.series.map((series) => ({
     label: seriesLabel(series),
-    data: (rowsByKey.get(series.propKey) ?? []).map((row) => seriesValue(row, series.aggregation)),
+    data: (rowsByKey.get(series.propKey) ?? []).map((row) => row[series.aggregation]),
     color: series.color,
     fill: false,
   }));
