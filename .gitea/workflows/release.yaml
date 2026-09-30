@@ -145,13 +145,28 @@ jobs:
           ref: ${{ github.ref_name }}
           ssh-key: ${{ secrets.GIT_SSH_KEY }}
 
+      - name: Remove internal links from the published history
+        run: |
+          host="${{ github.server_url }}"
+          host="${host#*://}"
+          host="${host%%/*}"
+          host="${host%%:*}"
+          domain="${host#*.}"
+          case "$domain" in *.*) ;; *) domain="$host" ;; esac
+
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            git fetch --unshallow
+          fi
+          git branch -f mirror HEAD
+          sh deploy/mirror/sanitize-history.sh "$domain" mirror
+
       - name: Push to public GitHub mirror
         env:
           TOKEN: ${{ secrets.GHUB_MIRROR_TOKEN }}
         run: |
           # The mirror always matches what runs in production, including its release tag.
-          refs="HEAD:main"
+          refs="mirror:main"
           if [ "${{ github.event_name }}" = "release" ]; then
-            refs="$refs HEAD:refs/tags/${{ github.ref_name }}"
+            refs="$refs mirror:refs/tags/${{ github.ref_name }}"
           fi
           git push "https://x-access-token:${TOKEN}@github.com/MegaMileyStudios/analytics-server.git" $refs --force
