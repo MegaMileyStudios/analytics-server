@@ -8,7 +8,6 @@
   "dotnet.codeLens.enableReferencesCodeLens": false,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
-  "tinybird.dataProjectSubdir": "etc/tinybird",
   "coverage-gutters.coverageFileNames": ["coverage.cobertura.xml"],
   "coverage-gutters.showLineCoverage": false,
   "coverage-gutters.showRulerCoverage": true,

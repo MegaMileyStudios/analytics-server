@@ -567,16 +567,12 @@ public class StatsController : Controller
         return Ok(rows);
     }
 
-    // The event property charts query the props JSON directly, which the Tinybird pipes don't support
     [HttpGet("/api/_stats/event-prop-keys")]
     public async Task<IActionResult> EventPropKeys([FromQuery] QueryParams body, CancellationToken cancellationToken)
     {
         var query = body.Parse();
         if (string.IsNullOrEmpty(query.EventName))
             return BadRequest("eventName is required.");
-
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(Array.Empty<EventPropKey>());
 
         var rows = await _queryClient.NamedQueryAsync<EventPropKey>("event_prop_keys__v1", new {
             date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -595,9 +591,6 @@ public class StatsController : Controller
         var query = body.Parse();
         if (string.IsNullOrEmpty(query.EventName) || string.IsNullOrEmpty(query.PropKey))
             return BadRequest("eventName and propKey are required.");
-
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(Array.Empty<EventPropNumericRow>());
 
         var rows = await _queryClient.NamedQueryAsync<EventPropNumericRow>("event_prop_numeric_periodic__v1", new {
             date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -619,9 +612,6 @@ public class StatsController : Controller
         if (string.IsNullOrEmpty(query.EventName) || string.IsNullOrEmpty(query.PropKey))
             return BadRequest("eventName and propKey are required.");
 
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(new EventPropDistribution());
-
         var rows = await _queryClient.NamedQueryAsync<EventPropValueRow>("event_prop_distribution__v1", new {
             date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
             date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -641,9 +631,6 @@ public class StatsController : Controller
         if (string.IsNullOrEmpty(query.EventName) || string.IsNullOrEmpty(query.PropKey))
             return BadRequest("eventName and propKey are required.");
 
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(new EventPropDistributionSeries());
-
         var rows = await _queryClient.NamedQueryAsync<EventPropPeriodicValueRow>("event_prop_distribution_periodic__v1", new {
             date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
             date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -657,13 +644,10 @@ public class StatsController : Controller
         return Ok(EventPropDistributionSeries.FromRows(rows));
     }
 
-    // Local play time and the missing offset count need the timezone_offset column, which the Tinybird pipes don't have
     [HttpGet("/api/_stats/local-play-time")]
     public async Task<IActionResult> LocalPlayTime([FromQuery] LocalPlayTimeQueryParams body, CancellationToken cancellationToken)
     {
         var query = body.Parse();
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(Array.Empty<LocalPlayTimeRow>());
 
         var rows = await _queryClient.NamedQueryAsync<LocalPlayTimeRow>("local_play_time__v1", new {
             date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -686,8 +670,6 @@ public class StatsController : Controller
     public async Task<IActionResult> MissingTimezoneOffsetCount([FromQuery] QueryParams body, CancellationToken cancellationToken)
     {
         var query = body.Parse();
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(new MissingTimezoneOffset());
 
         var row = await _queryClient.NamedQuerySingleAsync<MissingTimezoneOffset>("missing_timezone_offset__v1", new {
             date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -753,18 +735,15 @@ public class StatsController : Controller
             session_id = query.SessionId,
         }, cancellationToken);
 
-        // View events live in their own table, which only exists on ClickHouse
-        if (_queryClient is not TinybirdQueryClient)
-        {
-            var views = (await _queryClient.NamedQueryAsync<SessionViewEvent>("session_view_events__v1", new {
-                app_id = query.AppId,
-                session_id = query.SessionId,
-            }, cancellationToken)).ToArray();
+        // View events live in their own table
+        var views = (await _queryClient.NamedQueryAsync<SessionViewEvent>("session_view_events__v1", new {
+            app_id = query.AppId,
+            session_id = query.SessionId,
+        }, cancellationToken)).ToArray();
 
-            row.ViewsType = views.Select(v => v.ViewType).ToArray();
-            row.ViewsName = views.Select(v => v.ViewName).ToArray();
-            row.ViewsTimestamp = views.Select(v => v.Timestamp).ToArray();
-        }
+        row.ViewsType = views.Select(v => v.ViewType).ToArray();
+        row.ViewsName = views.Select(v => v.ViewName).ToArray();
+        row.ViewsTimestamp = views.Select(v => v.Timestamp).ToArray();
 
         return Ok(row);
     }
@@ -819,10 +798,6 @@ public class StatsController : Controller
             return BadRequest($"periods must be between 1 and {maxPeriods}.");
 
         var result = new RetentionCohorts { Granularity = body.Granularity.ToString(), Periods = periods };
-
-        // Retention needs the persistent user ID, which the Tinybird pipes don't have
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(result);
 
         var appId = new QueryParams { AppId = body.AppId, BuildMode = body.BuildMode }.Parse().AppId;
         var rows = await _queryClient.NamedQueryAsync<RetentionRow>("retention_cohorts__v1", new

@@ -26,7 +26,7 @@ export function Metric(props: Props) {
     </TooltipProvider>
   );
 
-  // Analytics backends without persistent user IDs (Tinybird) return zeros, so there's nothing to show
+  // Without a persistent/inferred split (both zero) there's nothing to show
   const hasBreakdown = !!props.breakdown && (props.breakdown.persistent > 0 || props.breakdown.inferred > 0);
 
   const Breakdown = hasBreakdown && (

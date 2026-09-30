@@ -36,7 +36,7 @@ export function Component() {
     if (isLoading) return "";
     if (totalUsers === 0) return "No users in the last hour";
 
-    // Analytics backends without persistent user IDs (Tinybird) return zeros, so there's nothing to show
+    // Without a persistent/inferred split (both zero) there's nothing to show
     const hasBreakdown = persistentUsers > 0 || inferredUsers > 0;
     const count = hasBreakdown ? `${totalUsers} (${persistentUsers}/${inferredUsers})` : `${totalUsers}`;
     return `${count} ${totalUsers === 1 ? "user" : "users"} in the last hour`;

@@ -59,7 +59,7 @@ export function MetricsChart(props: Props) {
       color: colors.primary,
     };
 
-    // Analytics backends without persistent user IDs (Tinybird) return all zeros, so there's nothing to split
+    // Without any persistent/inferred data (all zeros) there's nothing to split
     const hasBreakdown = !!breakdown && [...breakdown.persistent, ...breakdown.inferred].some((x) => x > 0);
     if (!hasBreakdown) return [total];
 

@@ -15,7 +15,7 @@ The repo has two remotes: `origin` (this fork) and `upstream` (`aptabase/aptabas
 **Backend (.NET 8)**
 - ASP.NET Core with minimal API/controllers
 - PostgreSQL (primary database) via Npgsql and Dapper
-- ClickHouse or Tinybird (analytics data storage)
+- ClickHouse (analytics data storage)
 - FluentMigrator for database migrations
 - Feature-based folder organization in `src/Features/`
 
@@ -133,8 +133,8 @@ Each feature typically contains:
 
 ### Data Flow
 
-1. **Event Ingestion**: SDK → `/api/v0/event` → `InMemoryEventBuffer` → `EventBackgroundWritter` → ClickHouse/Tinybird
-2. **Analytics Queries**: Frontend → API Controllers → `IQueryClient` → ClickHouse/Tinybird → Stats aggregation
+1. **Event Ingestion**: SDK → `/api/v0/event` → `InMemoryEventBuffer` → `EventBackgroundWritter` → ClickHouse
+2. **Analytics Queries**: Frontend → API Controllers → `IQueryClient` → ClickHouse → Stats aggregation
 3. **Authentication**: OAuth provider → callback → `AuthService` → PostgreSQL → Cookie session
 
 ### Database Strategy
@@ -146,11 +146,11 @@ Each feature typically contains:
 - Feature flags
 - Binary blobs (small files)
 
-**ClickHouse/Tinybird** stores:
+**ClickHouse** stores:
 - Analytics events (high volume)
 - Time-series data
 
-The system supports both ClickHouse (self-hosted) and Tinybird (managed) as analytics backends. The choice is controlled by environment variables (either `CLICKHOUSE_URL` or `TINYBIRD_BASE_URL`/`TINYBIRD_TOKEN`).
+ClickHouse is the only analytics backend. Upstream Aptabase also supports Tinybird (used by its SaaS version), but this fork removed it (#64).
 
 ### Environment Configuration
 
@@ -160,10 +160,7 @@ All environment variables are centralized in `EnvSettings.cs`. Key variables:
 - `BASE_URL` - Application base URL
 - `DATABASE_URL` - PostgreSQL connection string
 - `AUTH_SECRET` - Secret for signing auth tokens
-
-**Analytics Backend (one of):**
-- `CLICKHOUSE_URL` - ClickHouse connection
-- `TINYBIRD_BASE_URL` + `TINYBIRD_TOKEN` - Tinybird API
+- `CLICKHOUSE_URL` - ClickHouse connection string (or the Aspire `ConnectionStrings__clickhousedb`)
 
 **Email:**
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`
@@ -185,7 +182,7 @@ The application uses ASP.NET Core rate limiting with policies:
 ### Background Jobs
 
 Several `IHostedService` implementations handle periodic tasks:
-- `EventBackgroundWritter` - Flushes buffered events to ClickHouse/Tinybird
+- `EventBackgroundWritter` - Flushes buffered events to ClickHouse
 - `PurgeDailySaltsCronJob` - Removes old privacy salts
 - `OveruseNotificationCronJob` - Sends billing alerts
 - `TrialExpiredCronJob` - Handles trial expirations

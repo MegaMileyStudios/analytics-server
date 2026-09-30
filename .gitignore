@@ -6,7 +6,6 @@ bin
 coverage.cobertura.xml
 *.DotSettings.user
 
-etc/tinybird/.tinyb
 src/node_modules
 src/wwwroot/
 src/Properties/*

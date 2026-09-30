@@ -27,8 +27,7 @@ public class ViewQueryParams : QueryParams
     public string? MainView { get; set; }
 }
 
-// View tracking reads the view_events table, which only exists on ClickHouse.
-// On Tinybird every endpoint returns an empty result.
+// View tracking reads the view_events table.
 [ApiController, IsAuthenticated, HasReadAccessToApp]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [EnableRateLimiting("Stats")]
@@ -44,9 +43,6 @@ public class ViewStatsController : Controller
     [HttpGet("/api/_stats/views/main")]
     public async Task<IActionResult> MainViews([FromQuery] ViewQueryParams body, CancellationToken cancellationToken)
     {
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(Array.Empty<ViewStatsRow>());
-
         var rows = await _queryClient.NamedQueryAsync<ViewStatsRow>("view_main_stats__v1", ToArgs(body), cancellationToken);
         return Ok(rows);
     }
@@ -54,9 +50,6 @@ public class ViewStatsController : Controller
     [HttpGet("/api/_stats/views/popups")]
     public async Task<IActionResult> Popups([FromQuery] ViewQueryParams body, CancellationToken cancellationToken)
     {
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(Array.Empty<ViewStatsRow>());
-
         var rows = await _queryClient.NamedQueryAsync<ViewStatsRow>("view_popup_stats__v1", ToArgs(body), cancellationToken);
         return Ok(rows);
     }
@@ -75,9 +68,6 @@ public class ViewStatsController : Controller
 
     private async Task<IActionResult> TopN(string nameColumn, ViewQueryParams body, CancellationToken cancellationToken)
     {
-        if (_queryClient is TinybirdQueryClient)
-            return Ok(Array.Empty<TopNItem>());
-
         var args = ToArgs(body);
         var rows = await _queryClient.NamedQueryAsync<TopNItem>("view_top_n__v1", new
         {

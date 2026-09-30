@@ -7,13 +7,11 @@ public class ErrorDto
     public string ErrorId { get; set; } = "";
     public string AppId { get; set; } = "";
 
-    // Timestamps in the error_events table are stored as UTC wall time, but the two
-    // query backends materialize them with different DateTimeKind: ClickHouse.Client
-    // (via Dapper) yields Unspecified, while TinybirdDateTimeJsonConverter yields Utc.
-    // Normalizing to Utc here guarantees both backends serialize identically as ISO 8601
-    // with a trailing "Z" (e.g. "2026-07-02T14:30:00Z"), which the frontend's
-    // `new Date(...)` parses correctly as UTC. Both Dapper and System.Text.Json
-    // populate this DTO through the setter, so the normalization applies everywhere.
+    // Timestamps in the error_events table are stored as UTC wall time, but ClickHouse.Client
+    // (via Dapper) materializes them with DateTimeKind.Unspecified. Normalizing to Utc here
+    // guarantees they serialize as ISO 8601 with a trailing "Z" (e.g. "2026-07-02T14:30:00Z"),
+    // which the frontend's `new Date(...)` parses correctly as UTC. Both Dapper and
+    // System.Text.Json populate this DTO through the setter, so the normalization applies everywhere.
     public DateTime Timestamp
     {
         get => _timestamp;

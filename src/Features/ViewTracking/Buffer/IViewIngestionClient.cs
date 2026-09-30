@@ -74,13 +74,3 @@ public class ClickHouseViewIngestionClient : IViewIngestionClient
         return bulkCopy.RowsWritten;
     }
 }
-
-// View tracking is only implemented for ClickHouse. On Tinybird the views are accepted
-// (so SDKs don't retry them) and dropped, and the view queries return empty results.
-public class NoopViewIngestionClient : IViewIngestionClient
-{
-    public Task<long> BulkSendViewsAsync(IEnumerable<ViewRow> rows, CancellationToken ct = default)
-    {
-        return Task.FromResult(0L);
-    }
-}

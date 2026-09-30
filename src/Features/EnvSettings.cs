@@ -19,16 +19,6 @@ public class EnvSettings
     // Variable Name: CLICKHOUSE_URL
     public string ClickHouseConnectionString { get; private set; } = "";
 
-    // The base URI of the Tinybird API
-    // E.g: https://api.tinybird.co
-    // Variable Name: TINYBIRD_BASE_URL
-    public string TinybirdBaseUrl { get; private set; } = "";
-
-    // The token for Tinybird API, must have write and read access
-    // E.g: p.eyJ1Ijo...
-    // Variable Name: TINYBIRD_TOKEN
-    public string TinybirdToken { get; private set; } = "";
-
     // A random secret key used for signing auth tokens
     // E.g: GMvqFuPEiRZt6RtaB5OT
     // Variable Name: AUTH_SECRET
@@ -110,9 +100,7 @@ public class EnvSettings
             Region = region,
             SelfBaseUrl = NormalizeBaseUrl(MustGet("BASE_URL")),
             ConnectionString = GetOrNull("ConnectionStrings__postgresdb") ?? MustGet("DATABASE_URL"),
-            ClickHouseConnectionString = GetOrNull("ConnectionStrings__clickhousedb") ?? Get("CLICKHOUSE_URL"),
-            TinybirdBaseUrl = Get("TINYBIRD_BASE_URL"),
-            TinybirdToken = Get("TINYBIRD_TOKEN"),
+            ClickHouseConnectionString = GetOrNull("ConnectionStrings__clickhousedb") ?? MustGet("CLICKHOUSE_URL"),
             AuthSecret = Encoding.ASCII.GetBytes(MustGet("AUTH_SECRET")),
             LemonSqueezyApiKey = Get("LEMONSQUEEZY_API_KEY"),
             LemonSqueezySigningSecret = Get("LEMONSQUEEZY_SIGNING_SECRET"),

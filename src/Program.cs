@@ -23,7 +23,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Hosting;
-using System.Net.Http.Headers;
 using System.Threading.RateLimiting;
 
 public partial class Program
@@ -180,31 +179,15 @@ public partial class Program
         builder.Services.AddEmailClient(appEnv);
         builder.Services.AddLemonSqueezy(appEnv);
 
-        if (!string.IsNullOrEmpty(appEnv.ClickHouseConnectionString))
-        {
-            builder.Services.AddSingleton(x => new ClickHouseConnection(appEnv.ClickHouseConnectionString));
-            builder.Services.AddSingleton<IClickHouseMigrationRunner, ClickHouseMigrationRunner>();
-            builder.Services.AddSingleton<IQueryClient, ClickHouseQueryClient>();
-            builder.Services.AddSingleton<IIngestionClient, ClickHouseIngestionClient>();
-            builder.Services.AddSingleton<IErrorIngestionClient, ClickHouseErrorIngestionClient>();
-            builder.Services.AddSingleton<IErrorQueryClient, ClickHouseErrorQueryClient>();
-            builder.Services.AddSingleton<IViewIngestionClient, ClickHouseViewIngestionClient>();
-            builder.Services.AddSingleton<IUserDataEraser, ClickHouseUserDataEraser>();
-            builder.Services.AddHostedService<ProcessDeletionRequestsCronJob>();
-        }
-        else
-        {
-            builder.Services.AddSingleton<IQueryClient, TinybirdQueryClient>();
-            builder.Services.AddSingleton<IIngestionClient, TinybirdIngestionClient>();
-            builder.Services.AddSingleton<IErrorIngestionClient, TinybirdErrorIngestionClient>();
-            builder.Services.AddSingleton<IErrorQueryClient, TinybirdErrorQueryClient>();
-            builder.Services.AddSingleton<IViewIngestionClient, NoopViewIngestionClient>();
-            builder.Services.AddHttpClient("Tinybird", client =>
-            {
-                client.BaseAddress = new Uri(appEnv.TinybirdBaseUrl);
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", appEnv.TinybirdToken);
-            });
-        }
+        builder.Services.AddSingleton(x => new ClickHouseConnection(appEnv.ClickHouseConnectionString));
+        builder.Services.AddSingleton<IClickHouseMigrationRunner, ClickHouseMigrationRunner>();
+        builder.Services.AddSingleton<IQueryClient, ClickHouseQueryClient>();
+        builder.Services.AddSingleton<IIngestionClient, ClickHouseIngestionClient>();
+        builder.Services.AddSingleton<IErrorIngestionClient, ClickHouseErrorIngestionClient>();
+        builder.Services.AddSingleton<IErrorQueryClient, ClickHouseErrorQueryClient>();
+        builder.Services.AddSingleton<IViewIngestionClient, ClickHouseViewIngestionClient>();
+        builder.Services.AddSingleton<IUserDataEraser, ClickHouseUserDataEraser>();
+        builder.Services.AddHostedService<ProcessDeletionRequestsCronJob>();
 
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
         builder.Services.AddSingleton<IDbContext, DbContext>();
@@ -288,12 +271,8 @@ public partial class Program
         var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
         runner.MigrateUp();
 
-        var env = scope.ServiceProvider.GetRequiredService<EnvSettings>();
-        if (!string.IsNullOrEmpty(env.ClickHouseConnectionString))
-        {
-            // Execute ClickHouse migrations (if applicable)
-            var chRunner = scope.ServiceProvider.GetRequiredService<IClickHouseMigrationRunner>();
-            chRunner.MigrateUp();
-        }
+        // Execute ClickHouse migrations
+        var chRunner = scope.ServiceProvider.GetRequiredService<IClickHouseMigrationRunner>();
+        chRunner.MigrateUp();
     }
 }
