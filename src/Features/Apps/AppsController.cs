@@ -112,9 +112,11 @@ public class AppsController : Controller
             AppKey = $"A-{_env.Region}-{NanoId.Numbers(10)}"
         };
 
-        await _db.Connection.ExecuteScalarAsync<string>(@"
+        // Only insert when the owner still exists, so a stale session can't create orphaned apps.
+        var inserted = await _db.Connection.ExecuteAsync(@"
             INSERT INTO apps (id, owner_id, name, app_key, has_events)
-            VALUES (@appId, @ownerId, @name, @appKey, false)",
+            SELECT @appId, @ownerId, @name, @appKey, false
+            WHERE EXISTS (SELECT 1 FROM users WHERE id = @ownerId)",
         new
         {
             appId = app.Id,
@@ -122,6 +124,9 @@ public class AppsController : Controller
             name = app.Name,
             appKey = app.AppKey
         });
+
+        if (inserted == 0)
+            return Unauthorized();
 
         return Ok(app);
     }

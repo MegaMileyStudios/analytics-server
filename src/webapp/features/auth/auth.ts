@@ -38,9 +38,12 @@ export async function requestRegisterLink(name: string, email: string): Promise<
 export async function me(): Promise<UserAccount | null> {
   const [status, account] = await api.fetch("GET", "/_auth/me");
 
-  if (status === 401) return null;
+  // Any 4xx (e.g. a session whose user no longer exists) means logged out. 5xx is a real
+  // failure and should show the error state instead of bouncing the user to the login page.
+  if (status >= 400 && status < 500) return null;
+  if (status >= 500) throw new Error(`Failed to load account (${status})`);
 
-  return account.json() as Promise<UserAccount | null>;
+  return account.json() as Promise<UserAccount>;
 }
 
 export async function signOut(): Promise<void> {

@@ -108,7 +108,12 @@ public class AuthController : Controller
         var identity = this.GetCurrentUserIdentity();
         var user = await _authService.FindUserByIdAsync(identity.Id, cancellationToken);
         if (user is null)
-            return NotFound();
+        {
+            // The cookie is validly signed but its user is gone (deleted, DB reset, wrong DB).
+            // Clear it so the dashboard sends the browser back to the login screen.
+            await _authService.SignOutAsync();
+            return Unauthorized();
+        }
 
         return Ok(user);
     }

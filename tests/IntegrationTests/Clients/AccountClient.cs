@@ -59,6 +59,16 @@ public class AccountClient
         return metrics?.Current.Events ?? 0;
     }
 
+    public async Task<HttpResponseMessage> GetMe()
+    {
+        return await _client.GetAsync("/api/_auth/me");
+    }
+
+    public async Task<HttpResponseMessage> PostApp(string name)
+    {
+        return await _client.PostAsJsonAsync("/api/_apps", new { name });
+    }
+
     public async Task<HttpResponseMessage> GetErrors(string appId)
     {
         return await _client.GetAsync($"/api/v0/apps/{appId}/errors?buildMode=release");
