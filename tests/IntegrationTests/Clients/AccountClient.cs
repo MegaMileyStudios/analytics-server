@@ -132,6 +132,11 @@ public class AccountClient
         return await _client.GetAsync(url);
     }
 
+    public async Task<HttpResponseMessage> GetStats(string endpoint, string appId, DateTime startDate, DateTime endDate, string query = "")
+    {
+        return await _client.GetAsync($"/api/_stats/{endpoint}?buildMode=release&appId={appId}&startDate={startDate:o}&endDate={endDate:o}{query}");
+    }
+
     public async Task<HttpResponseMessage> GetViewStats(string kind, string appId, DateTime startDate, DateTime endDate, string buildMode = "release", string? mainView = null, string? osName = null, string? appVersion = null)
     {
         var url = $"/api/_stats/views/{kind}?buildMode={buildMode}&appId={appId}&startDate={startDate:o}&endDate={endDate:o}";

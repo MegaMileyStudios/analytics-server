@@ -1,9 +1,8 @@
 import { useApps } from "@features/apps";
 import { useQuery } from "@tanstack/react-query";
-import { useAtomValue } from "jotai";
 import { useSearchParams } from "react-router-dom";
-import { dateFilterValuesAtom } from "../../../atoms/date-atoms";
 import { QueryParams, TopNItem, TopNQueryChildrenProps } from "../query";
+import { useDateFilters } from "../mode/time-mode";
 
 type Props = {
   appId: string;
@@ -15,7 +14,7 @@ type Props = {
 export function TopNDataContainer(props: Props) {
   const { buildMode } = useApps();
   const [searchParams] = useSearchParams();
-  const { startDateIso, endDateIso, granularity } = useAtomValue(dateFilterValuesAtom);
+  const { startDateIso, endDateIso, granularity, localTime } = useDateFilters();
 
   const countryCode = searchParams.get("countryCode") || "";
   const appVersion = searchParams.get("appVersion") || "";
@@ -29,6 +28,7 @@ export function TopNDataContainer(props: Props) {
       props.appId,
       startDateIso,
       endDateIso,
+      localTime,
       countryCode,
       appVersion,
       eventName,
@@ -45,6 +45,7 @@ export function TopNDataContainer(props: Props) {
         appVersion,
         eventName,
         osName,
+        localTime,
       }),
     staleTime: 10000,
     enabled: !!startDateIso && !!endDateIso && !!granularity,

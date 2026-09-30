@@ -37,6 +37,8 @@ public class SystemProperties
     public string? DeviceModel { get; set; }
 
     public string? UserId { get; set; }
+
+    public int? TimezoneOffset { get; set; }
 }
 
 public class EventBody
@@ -123,6 +125,7 @@ public class EventBody
             return (false, PersistentUserId.InvalidMessage);
 
         systemProps.UserId = userId;
+        systemProps.TimezoneOffset = TimezoneOffset.Normalize(systemProps.TimezoneOffset);
 
         var maxAge = systemProps.UserId is null ? MaxEventAge : MaxPersistentUserEventAge;
         if (timestamp < DateTime.UtcNow - maxAge)

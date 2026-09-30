@@ -378,4 +378,24 @@ public class ErrorBodyTests
     }
 
     #endregion
+
+    [Fact]
+    public void IsValid_Should_Keep_TimezoneOffset_In_Range()
+    {
+        var body = CreateValidBody();
+        body.TimezoneOffset = 540;
+
+        body.IsValid().Should().BeTrue();
+        body.TimezoneOffset.Should().Be(540);
+    }
+
+    [Fact]
+    public void IsValid_Should_Drop_Out_Of_Range_TimezoneOffset_But_Stay_Valid()
+    {
+        var body = CreateValidBody();
+        body.TimezoneOffset = -1000;
+
+        body.IsValid().Should().BeTrue();
+        body.TimezoneOffset.Should().BeNull();
+    }
 }

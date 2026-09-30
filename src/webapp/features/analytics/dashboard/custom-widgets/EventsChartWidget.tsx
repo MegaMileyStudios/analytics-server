@@ -6,15 +6,15 @@ import { formatPeriod } from "@fns/format-date";
 import { formatNumber } from "@fns/format-number";
 import { IconChartBar, IconWand } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
-import { dateFilterValuesAtom } from "../../../../atoms/date-atoms";
 import {
   dashboardWidgetsAtom,
   DEFAULT_WIDGETS_CONFIG,
   EventsChartWidgetConfig,
   SingleWidgetConfig,
 } from "../../../../atoms/widgets-atoms";
+import { useDateFilters } from "../../mode/time-mode";
 import { Granularity, periodicStats } from "../../query";
 import { EventsChart, EventSeries } from "./EventsChart";
 
@@ -30,6 +30,7 @@ type Props = {
 
 function TooltipContent(props: {
   granularity: Granularity;
+  wallClock: boolean;
   label: string;
   points: Array<{
     name: string;
@@ -38,7 +39,9 @@ function TooltipContent(props: {
 }) {
   return (
     <div className="text-sm whitespace-nowrap">
-      <p className="text-center text-muted-foreground">{formatPeriod(props.granularity, props.label)}</p>
+      <p className="text-center text-muted-foreground">
+        {formatPeriod(props.granularity, props.label, props.wallClock)}
+      </p>
       {props.points.map((point) => (
         <p key={point.name}>
           <span className="font-medium">{formatNumber(point.value)}</span>{" "}
@@ -65,7 +68,7 @@ export function EventsChartWidget(props: Props) {
   );
 
   const eventsChartSeriesConfig: string[] = eventsChartWidgetConfig.properties?.selectedEventNames ?? [];
-  const { startDateIso, endDateIso, granularity } = useAtomValue(dateFilterValuesAtom);
+  const { startDateIso, endDateIso, granularity, isAllTime, localTime } = useDateFilters();
 
   const [eventSeries, setEventSeries] = useState<EventSeries[]>([]);
 
@@ -118,6 +121,7 @@ export function EventsChartWidget(props: Props) {
       props.appId,
       startDateIso,
       endDateIso,
+      localTime,
       JSON.stringify(eventsChartSeriesConfig),
     ],
     queryFn: () =>
@@ -130,6 +134,7 @@ export function EventsChartWidget(props: Props) {
             endDate: endDateIso,
             granularity,
             eventName,
+            localTime,
           })
         )
       ),
@@ -148,7 +153,7 @@ export function EventsChartWidget(props: Props) {
     const processedDataArrays = visibleData.map((data) => {
       let processedData = data;
       // If the start date matches start of date we are filtering by 'All time'
-      if (startDateIso === new Date(0).toISOString() && processedData.length) {
+      if (isAllTime && processedData.length) {
         const firstItemWithData = processedData.findIndex((x) => !!x.events || !!x.sessions || !!x.users);
         const sliceDataFrom = firstItemWithData > 2 ? firstItemWithData - 2 : Math.max(0, firstItemWithData);
         processedData = processedData.slice(sliceDataFrom);
@@ -162,7 +167,7 @@ export function EventsChartWidget(props: Props) {
         values: processedDataArrays[index].map((x) => x.events),
       }))
     );
-  }, [visibleData, eventsChartSeriesConfig, startDateIso]);
+  }, [visibleData, eventsChartSeriesConfig, isAllTime]);
 
   useEffect(() => {
     if (!startDateIso || !endDateIso) return;
@@ -234,9 +239,9 @@ export function EventsChartWidget(props: Props) {
         granularity={granularity}
         series={eventSeries}
         labels={labels}
-        formatLabel={(label) => formatPeriod(granularity, label.toString())}
+        formatLabel={(label) => formatPeriod(granularity, label.toString(), localTime)}
         renderTooltip={({ label, points }) => (
-          <TooltipContent granularity={granularity} label={label} points={points} />
+          <TooltipContent granularity={granularity} wallClock={localTime} label={label} points={points} />
         )}
         refetch={refetch}
       />

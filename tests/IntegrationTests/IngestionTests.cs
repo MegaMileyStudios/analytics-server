@@ -287,6 +287,58 @@ public class IngestionTests
         count.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Can_Ingest_With_Timezone_Offset()
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new IngestionClient(_fixture.CreateClient(), app.AppKey);
+        client.SetTimezoneOffset(-300);
+
+        var code = await client.TrackEvent(DateTime.UtcNow, "App Started", null);
+        code.Should().Be(HttpStatusCode.OK);
+
+        code = await client.TrackEvents([
+            (DateTime.UtcNow, "Menu Opened", null),
+            (DateTime.UtcNow, "Button Clicked", null),
+        ]);
+        code.Should().Be(HttpStatusCode.OK);
+
+        await _eventWritter.FlushEvents();
+
+        var offsets = await GetTimezoneOffsets(app.Id);
+        offsets.Should().HaveCount(3).And.AllBeEquivalentTo((short?)-300);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(900)]
+    [InlineData(-721)]
+    public async Task Stores_Missing_Or_Out_Of_Range_Timezone_Offset_As_Null(int? offset)
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new IngestionClient(_fixture.CreateClient(), app.AppKey);
+        client.SetTimezoneOffset(offset);
+
+        var code = await client.TrackEvent(DateTime.UtcNow, "App Started", null);
+        code.Should().Be(HttpStatusCode.OK);
+
+        await _eventWritter.FlushEvents();
+
+        var offsets = await GetTimezoneOffsets(app.Id);
+        offsets.Should().ContainSingle().Which.Should().BeNull();
+    }
+
+    private async Task<short?[]> GetTimezoneOffsets(string appId)
+    {
+        var conn = _fixture.Services.GetRequiredService<ClickHouseConnection>();
+        var rows = await conn.QueryAsync<short?>(
+            "SELECT timezone_offset FROM events WHERE app_id = @app_id",
+            new { app_id = appId });
+        return rows.ToArray();
+    }
+
     private async Task<string?[]> GetPersistentUserIds(string appId)
     {
         var conn = _fixture.Services.GetRequiredService<ClickHouseConnection>();

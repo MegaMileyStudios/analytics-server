@@ -36,7 +36,7 @@ public class ErrorsClient
         return await _client.PostAsync("/api/v0/error", body);
     }
 
-    public static object NewError(DateTime timestamp, string errorType, string errorMessage, string? stackTrace = null, string? userId = null)
+    public static object NewError(DateTime timestamp, string errorType, string errorMessage, string? stackTrace = null, string? userId = null, int? timezoneOffset = null)
     {
         return new
         {
@@ -51,6 +51,7 @@ public class ErrorsClient
             sdkVersion = "aptabase-maui@0.2.0",
             sessionId = IngestionClient.NewSessionId(),
             userId,
+            timezoneOffset,
             severity = "error",
             kind = "handled",
             isDebug = false

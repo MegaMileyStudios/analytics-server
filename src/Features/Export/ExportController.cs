@@ -93,7 +93,7 @@ public partial class ExportController(IQueryClient queryClient, ILogger<ExportCo
 
         if (formatName == "Parquet")
         {
-            var query = $@"SELECT timestamp, user_id, persistent_user_id, session_id,
+            var query = $@"SELECT timestamp, timezone_offset, user_id, persistent_user_id, session_id,
                               event_name,
                               replace(replace(string_props, '\u0022', '\''), '\u0027', '\'') as string_props,
                               numeric_props,
@@ -123,7 +123,7 @@ public partial class ExportController(IQueryClient queryClient, ILogger<ExportCo
                 while (processedRecords < eventCount && !cancellationToken.IsCancellationRequested)
                 {
                     var query = $@"
-                    SELECT timestamp, user_id, persistent_user_id, session_id,
+                    SELECT timestamp, timezone_offset, user_id, persistent_user_id, session_id,
                            event_name,
                            replace(replace(string_props, '\u0022', '\''), '\u0027', '\'') as string_props,
                            numeric_props,

@@ -1,0 +1,24 @@
+-- Counts the events without a timezone offset, which the local time mode leaves out.
+-- They can't be placed in local time, so the (real time) date range is used for them.
+SELECT count() AS Events
+FROM events
+PREWHERE app_id = '{{app_id}}'
+WHERE timezone_offset IS NULL
+{% if date_from and date_to %}
+AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+{% endif %}
+{% if country_code %}
+AND country_code = '{{country_code}}'
+{% endif %}
+{% if event_name %}
+AND event_name = '{{event_name}}'
+{% endif %}
+{% if os_name %}
+AND os_name = '{{os_name}}'
+{% endif %}
+{% if device_model %}
+AND device_model = '{{device_model}}'
+{% endif %}
+{% if app_version %}
+AND app_version = '{{app_version}}'
+{% endif %}

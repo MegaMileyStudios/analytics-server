@@ -8,6 +8,7 @@ public readonly struct ViewRow
     public readonly DateTime Timestamp;
     public readonly string SessionId;
     public readonly string? PersistentUserId;
+    public readonly short? TimezoneOffset;
     public readonly string ViewType;
     public readonly string ViewName;
     public readonly string OSName;
@@ -32,6 +33,7 @@ public readonly struct ViewRow
         Timestamp = v.Timestamp;
         SessionId = v.SessionId;
         PersistentUserId = v.PersistentUserId;
+        TimezoneOffset = v.TimezoneOffset;
         ViewType = v.ViewType;
         ViewName = v.ViewName;
         OSName = v.OSName ?? "";

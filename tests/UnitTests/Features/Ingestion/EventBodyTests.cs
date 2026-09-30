@@ -158,4 +158,28 @@ public class EventBodyTests
         valid.Should().BeFalse();
         msg.Should().Be("UserID is invalid");
     }
+
+    [Fact]
+    public void IsValid_should_keep_timezone_offset_in_range()
+    {
+        var body = CreateValidBody(null);
+        body.SystemProps.TimezoneOffset = -300;
+
+        var (valid, _) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeTrue();
+        body.SystemProps.TimezoneOffset.Should().Be(-300);
+    }
+
+    [Fact]
+    public void IsValid_should_drop_out_of_range_timezone_offset_but_keep_event()
+    {
+        var body = CreateValidBody(null);
+        body.SystemProps.TimezoneOffset = 900;
+
+        var (valid, _) = body.IsValid(NullLogger.Instance);
+
+        valid.Should().BeTrue();
+        body.SystemProps.TimezoneOffset.Should().BeNull();
+    }
 }

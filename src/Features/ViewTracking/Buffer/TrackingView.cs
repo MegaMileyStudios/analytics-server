@@ -6,6 +6,7 @@ public readonly struct TrackingView
     public required DateTime Timestamp { get; init; }
     public required string SessionId { get; init; }
     public string? PersistentUserId { get; init; }
+    public short? TimezoneOffset { get; init; }
     public required string ViewType { get; init; }
     public required string ViewName { get; init; }
     public string OSName { get; init; }

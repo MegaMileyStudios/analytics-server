@@ -9,9 +9,8 @@ import { formatPeriod } from "@fns/format-date";
 import { formatNumber } from "@fns/format-number";
 import { IconMenu2, IconPlus, IconX } from "@tabler/icons-react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { useMemo } from "react";
-import { dateFilterValuesAtom } from "../../../../atoms/date-atoms";
 import {
   dashboardWidgetsAtom,
   PropertyAggregation,
@@ -27,6 +26,7 @@ import {
   EventPropKey,
   Granularity,
 } from "../../query";
+import { useDateFilters } from "../../mode/time-mode";
 import { CategoryChart, CategoryDisplay } from "./CategoryChart";
 import { CategoryTimeChart } from "./CategoryTimeChart";
 
@@ -55,7 +55,7 @@ export function PropertyChartWidget(props: Props) {
   const { buildMode } = useApps();
   const colors = useChartColors();
   const setWidgetsConfig = useSetAtom(dashboardWidgetsAtom);
-  const { startDateIso, endDateIso, granularity } = useAtomValue(dateFilterValuesAtom);
+  const { startDateIso, endDateIso, granularity, localTime } = useDateFilters();
   const config = props.widgetConfig.properties ?? {};
   const isCategory = config.kind === "boolean" || config.kind === "string";
   const isConfigured =
@@ -89,7 +89,7 @@ export function PropertyChartWidget(props: Props) {
   };
 
   const { data: keys } = useQuery({
-    queryKey: ["event-prop-keys", buildMode, props.appId, startDateIso, endDateIso, config.eventName],
+    queryKey: ["event-prop-keys", buildMode, props.appId, startDateIso, endDateIso, localTime, config.eventName],
     queryFn: () =>
       eventPropKeys({
         buildMode,
@@ -97,6 +97,7 @@ export function PropertyChartWidget(props: Props) {
         startDate: startDateIso,
         endDate: endDateIso,
         eventName: config.eventName,
+        localTime,
       }),
     staleTime: 10000,
     enabled: !!startDateIso && !!endDateIso && !!config.eventName,
@@ -351,7 +352,7 @@ function NumericPropertyChart(props: {
   granularity: Granularity;
 }) {
   const { buildMode } = useApps();
-  const { startDateIso, endDateIso } = useAtomValue(dateFilterValuesAtom);
+  const { startDateIso, endDateIso, isAllTime, localTime } = useDateFilters();
 
   const propKeys = useMemo(() => [...new Set(props.series.map((x) => x.propKey))], [props.series]);
   const results = useQueries({
@@ -362,6 +363,7 @@ function NumericPropertyChart(props: {
         props.appId,
         startDateIso,
         endDateIso,
+        localTime,
         props.granularity,
         props.eventName,
         propKey,
@@ -375,6 +377,7 @@ function NumericPropertyChart(props: {
           granularity: props.granularity,
           eventName: props.eventName,
           propKey,
+          localTime,
         }),
       staleTime: 10000,
       enabled: !!startDateIso && !!endDateIso && !!props.granularity,
@@ -384,7 +387,7 @@ function NumericPropertyChart(props: {
   const isLoading = results.some((x) => x.isLoading);
   const isError = results.some((x) => x.isError);
   let rows = results.map((x) => x.data ?? []);
-  if (startDateIso === new Date(0).toISOString()) {
+  if (isAllTime) {
     const firstWithData = Math.min(...rows.map((r) => r.findIndex((x) => x.events > 0)).filter((i) => i >= 0));
     const sliceFrom = Number.isFinite(firstWithData) ? Math.max(0, firstWithData - 2) : 0;
     rows = rows.map((r) => r.slice(sliceFrom));
@@ -410,10 +413,10 @@ function NumericPropertyChart(props: {
       isEmpty={isEmpty}
       isLoading={isLoading}
       isError={isError}
-      formatLabel={(label) => formatPeriod(props.granularity, label.toString())}
+      formatLabel={(label) => formatPeriod(props.granularity, label.toString(), localTime)}
       renderTooltip={({ label, points }) => (
         <div className="text-sm whitespace-nowrap">
-          <p className="text-center text-muted-foreground">{formatPeriod(props.granularity, label)}</p>
+          <p className="text-center text-muted-foreground">{formatPeriod(props.granularity, label, localTime)}</p>
           {points.map((point, index) => (
             <p key={index}>
               <span className="font-medium">{formatNumber(point.value)}</span> {point.name}
@@ -444,7 +447,7 @@ function CategoryPropertyChart(props: CategoryPropertyChartProps) {
 
 function CategoryPropertyTimeChart(props: CategoryPropertyChartProps) {
   const { buildMode } = useApps();
-  const { startDateIso, endDateIso } = useAtomValue(dateFilterValuesAtom);
+  const { startDateIso, endDateIso, localTime } = useDateFilters();
 
   const { isLoading, isError, data, refetch } = useQuery({
     queryKey: [
@@ -453,6 +456,7 @@ function CategoryPropertyTimeChart(props: CategoryPropertyChartProps) {
       props.appId,
       startDateIso,
       endDateIso,
+      localTime,
       props.granularity,
       props.eventName,
       props.propKey,
@@ -466,6 +470,7 @@ function CategoryPropertyTimeChart(props: CategoryPropertyChartProps) {
         granularity: props.granularity,
         eventName: props.eventName,
         propKey: props.propKey,
+        localTime,
       }),
     staleTime: 10000,
     enabled: !!startDateIso && !!endDateIso && !!props.granularity,
@@ -476,6 +481,7 @@ function CategoryPropertyTimeChart(props: CategoryPropertyChartProps) {
       data={data}
       stackMode={props.stackMode}
       granularity={props.granularity}
+      wallClock={localTime}
       isLoading={isLoading}
       isError={isError}
       refetch={refetch}
@@ -485,10 +491,19 @@ function CategoryPropertyTimeChart(props: CategoryPropertyChartProps) {
 
 function CategoryPropertyTotalsChart(props: CategoryPropertyChartProps) {
   const { buildMode } = useApps();
-  const { startDateIso, endDateIso } = useAtomValue(dateFilterValuesAtom);
+  const { startDateIso, endDateIso, localTime } = useDateFilters();
 
   const { isLoading, isError, data, refetch } = useQuery({
-    queryKey: ["event-prop-distribution", buildMode, props.appId, startDateIso, endDateIso, props.eventName, props.propKey],
+    queryKey: [
+      "event-prop-distribution",
+      buildMode,
+      props.appId,
+      startDateIso,
+      endDateIso,
+      localTime,
+      props.eventName,
+      props.propKey,
+    ],
     queryFn: () =>
       eventPropDistribution({
         buildMode,
@@ -497,6 +512,7 @@ function CategoryPropertyTotalsChart(props: CategoryPropertyChartProps) {
         endDate: endDateIso,
         eventName: props.eventName,
         propKey: props.propKey,
+        localTime,
       }),
     staleTime: 10000,
     enabled: !!startDateIso && !!endDateIso,

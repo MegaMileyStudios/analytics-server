@@ -312,6 +312,32 @@ public class RetentionQueryParams
     public int? Periods { get; set; }
 }
 
+public enum LocalPlayTimeMetric
+{
+    Sessions,
+    Events
+}
+
+public class LocalPlayTimeQueryParams : QueryParams
+{
+    public LocalPlayTimeMetric Metric { get; set; } = LocalPlayTimeMetric.Sessions;
+    // The viewer's IANA time zone, used when LocalTime is off
+    public string? TimeZone { get; set; }
+}
+
+public record LocalPlayTimeRow
+{
+    // 1 = Monday ... 7 = Sunday
+    public byte DayOfWeek { get; set; }
+    public byte Hour { get; set; }
+    public ulong Value { get; set; }
+}
+
+public record MissingTimezoneOffset
+{
+    public ulong Events { get; set; }
+}
+
 public enum TopNValue
 {
     UniqueSessions,
@@ -339,6 +365,12 @@ public record QueryArgs
     public string? AppVersion { get; set; }
     public string? PersistentUserId { get; set; }
     public string? PropKey { get; set; }
+    // Bucket and filter by the player's local time instead of real (UTC) time
+    public bool LocalTime { get; set; }
+
+    // Liquid treats any non-empty string as true (FormatArg would render a bool as "False"),
+    // so the flag is passed as "1" or left out
+    public string? LocalTimeArg => LocalTime ? "1" : null;
 
     public QueryArgs CloneToPreviousInterval()
     {
@@ -369,6 +401,7 @@ public record QueryArgs
             AppVersion = AppVersion,
             PersistentUserId = PersistentUserId,
             PropKey = PropKey,
+            LocalTime = LocalTime,
         };
     }
 }
@@ -388,6 +421,7 @@ public class QueryParams
     public string? DeviceModel { get; set; }
     public string? PersistentUserId { get; set; }
     public string? PropKey { get; set; }
+    public bool LocalTime { get; set; }
 
     public QueryArgs Parse()
     {
@@ -411,6 +445,7 @@ public class QueryParams
             AppVersion = AppVersion,
             PersistentUserId = PersistentUserId,
             PropKey = PropKey,
+            LocalTime = LocalTime,
         };
     }
 }
@@ -506,6 +541,7 @@ public class StatsController : Controller
             app_version = query.AppVersion,
             country_code = query.CountryCode,
             device_model = query.DeviceModel,
+            local_time = query.LocalTimeArg,
         }, cancellationToken);
 
         return Ok(rows);
@@ -525,6 +561,7 @@ public class StatsController : Controller
             app_version = query.AppVersion,
             country_code = query.CountryCode,
             device_model = query.DeviceModel,
+            local_time = query.LocalTimeArg,
         }, cancellationToken);
 
         return Ok(rows);
@@ -546,6 +583,7 @@ public class StatsController : Controller
             date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
             app_id = query.AppId,
             event_name = query.EventName,
+            local_time = query.LocalTimeArg,
         }, cancellationToken);
 
         return Ok(rows);
@@ -568,6 +606,7 @@ public class StatsController : Controller
             app_id = query.AppId,
             event_name = query.EventName,
             prop_key = query.PropKey,
+            local_time = query.LocalTimeArg,
         }, cancellationToken);
 
         return Ok(rows);
@@ -589,6 +628,7 @@ public class StatsController : Controller
             app_id = query.AppId,
             event_name = query.EventName,
             prop_key = query.PropKey,
+            local_time = query.LocalTimeArg,
         }, cancellationToken);
 
         return Ok(EventPropDistribution.FromRows(rows));
@@ -611,9 +651,65 @@ public class StatsController : Controller
             app_id = query.AppId,
             event_name = query.EventName,
             prop_key = query.PropKey,
+            local_time = query.LocalTimeArg,
         }, cancellationToken);
 
         return Ok(EventPropDistributionSeries.FromRows(rows));
+    }
+
+    // Local play time and the missing offset count need the timezone_offset column, which the Tinybird pipes don't have
+    [HttpGet("/api/_stats/local-play-time")]
+    public async Task<IActionResult> LocalPlayTime([FromQuery] LocalPlayTimeQueryParams body, CancellationToken cancellationToken)
+    {
+        var query = body.Parse();
+        if (_queryClient is TinybirdQueryClient)
+            return Ok(Array.Empty<LocalPlayTimeRow>());
+
+        var rows = await _queryClient.NamedQueryAsync<LocalPlayTimeRow>("local_play_time__v1", new {
+            date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
+            date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
+            app_id = query.AppId,
+            event_name = query.EventName,
+            os_name = query.OsName,
+            app_version = query.AppVersion,
+            country_code = query.CountryCode,
+            device_model = query.DeviceModel,
+            metric = body.Metric.ToString(),
+            viewer_tz = ValidTimeZoneOrUtc(body.TimeZone),
+            local_time = query.LocalTimeArg,
+        }, cancellationToken);
+
+        return Ok(rows);
+    }
+
+    [HttpGet("/api/_stats/missing-timezone-offset")]
+    public async Task<IActionResult> MissingTimezoneOffsetCount([FromQuery] QueryParams body, CancellationToken cancellationToken)
+    {
+        var query = body.Parse();
+        if (_queryClient is TinybirdQueryClient)
+            return Ok(new MissingTimezoneOffset());
+
+        var row = await _queryClient.NamedQuerySingleAsync<MissingTimezoneOffset>("missing_timezone_offset__v1", new {
+            date_from = query.DateFrom?.ToString("yyyy-MM-dd HH:mm:ss"),
+            date_to = query.DateTo?.ToString("yyyy-MM-dd HH:mm:ss"),
+            app_id = query.AppId,
+            event_name = query.EventName,
+            os_name = query.OsName,
+            app_version = query.AppVersion,
+            country_code = query.CountryCode,
+            device_model = query.DeviceModel,
+        }, cancellationToken);
+
+        return Ok(row);
+    }
+
+    // Only IANA names this server knows are passed on to ClickHouse, anything else falls back to UTC
+    private static string ValidTimeZoneOrUtc(string? timeZone)
+    {
+        if (string.IsNullOrWhiteSpace(timeZone) || timeZone.Length > 64)
+            return "UTC";
+
+        return TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out var tz) && tz.HasIanaId ? tz.Id : "UTC";
     }
 
     [HttpGet("/api/_stats/live-geo")]
@@ -781,6 +877,7 @@ public class StatsController : Controller
             app_version = args.AppVersion,
             country_code = args.CountryCode,
             device_model = args.DeviceModel,
+            local_time = args.LocalTimeArg,
         }, cancellationToken);
     }
 
@@ -799,6 +896,7 @@ public class StatsController : Controller
             app_version = query.AppVersion,
             country_code = query.CountryCode,
             device_model = query.DeviceModel,
+            local_time = query.LocalTimeArg,
         }, cancellationToken);
 
         return Ok(rows);

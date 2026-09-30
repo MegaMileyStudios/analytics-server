@@ -155,6 +155,7 @@ public class EventsController : Controller
             Timestamp = body.Timestamp.ToUniversalTime(),
             SessionId = body.SessionId?.ToString() ?? "",
             PersistentUserId = body.SystemProps.UserId,
+            TimezoneOffset = (short?)body.SystemProps.TimezoneOffset,
             OSName = body.SystemProps.OSName ?? "",
             OSVersion = body.SystemProps.OSVersion ?? "",
             DeviceModel = body.SystemProps.DeviceModel ?? "",

@@ -21,6 +21,7 @@ import { CurrentFilters } from "./CurrentFilters";
 import { AppShareInfo } from "./dashboard/AppShareInfo";
 import { CountryWidget } from "./dashboard/CountryWidget";
 import { EventWidget } from "./dashboard/EventWidget";
+import { LocalPlayTimeWidget } from "./dashboard/LocalPlayTimeWidget";
 import { OSWidget } from "./dashboard/OSWidget";
 import { OnboardingDashboard } from "./dashboard/OnboardingDashboard";
 import { TeaserDashboardContainer } from "./dashboard/TeaserDashboardContainer";
@@ -33,6 +34,9 @@ import { MainChartWidget } from "./key_metrics/MainChartWidget";
 import { AppLockedContent } from "./locked/AppLockedContent";
 import { BuildModeSelector } from "./mode/BuildModeSelector";
 import { DebugModeBanner } from "./mode/DebugModeBanner";
+import { MissingOffsetNotice } from "./mode/MissingOffsetNotice";
+import { TimeModeSelector } from "./mode/TimeModeSelector";
+import { LocalTimeScope } from "./mode/time-mode";
 Component.displayName = "DashboardPage";
 
 const GRID_GAP_PX = 16;
@@ -43,7 +47,16 @@ type LayoutPreview = {
   valid: boolean;
 };
 
+// Only the dashboard supports the local time mode, see LocalTimeScope
 export function Component() {
+  return (
+    <LocalTimeScope.Provider value={true}>
+      <Dashboard />
+    </LocalTimeScope.Provider>
+  );
+}
+
+function Dashboard() {
   const { buildMode } = useApps();
   const app = useCurrentApp();
   const navigate = useNavigate();
@@ -229,6 +242,14 @@ export function Component() {
             </WidgetContainer>
           </LazyLoad>
         );
+      case "local-play-time":
+        return (
+          <LazyLoad className="h-full">
+            <WidgetContainer {...containerProps} widgetName={widget?.title ?? "Local Play Time"}>
+              <LocalPlayTimeWidget {...props} widgetConfig={widget} />
+            </WidgetContainer>
+          </LazyLoad>
+        );
       default:
         return null;
     }
@@ -259,12 +280,16 @@ export function Component() {
         <div className="flex justify-between items-center">
           <PageHeading title="Dashboard" aside={aside()} onClick={resetFilters} />
           <div className="flex items-end space-x-2">
+            <TimeModeSelector />
             <BuildModeSelector />
             <DateFilterContainer />
           </div>
         </div>
-        <div className="flex w-full justify-end">
-          <CurrentFilters />
+        <div className="flex w-full justify-between items-center gap-2">
+          <MissingOffsetNotice appId={app.id} />
+          <div className="ml-auto">
+            <CurrentFilters />
+          </div>
         </div>
         <DndContext
           sensors={sensors}

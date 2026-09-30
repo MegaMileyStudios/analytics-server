@@ -2,6 +2,8 @@
 -- Numbers are stored in numeric_props, everything else in string_props (booleans as 'true'/'false'),
 -- so a string key is a boolean when every value seen is 'true' or 'false'.
 -- A key sent with different types by different events is returned once for each type.
+-- In local time mode (local_time) ts is the player's local wall-clock time, and date_from/date_to are local too.
+{% assign ts = "timestamp" %}{% if local_time %}{% assign ts = "(timestamp + toIntervalMinute(assumeNotNull(timezone_offset)))" %}{% endif %}
 SELECT Key, Type FROM (
     SELECT kv.1 AS Key,
            if(countIf(kv.2 NOT IN ('true', 'false')) = 0, 'boolean', 'string') AS Type
@@ -11,7 +13,14 @@ SELECT Key, Type FROM (
         PREWHERE app_id = '{{app_id}}'
         WHERE event_name = '{{event_name}}'
         {% if date_from and date_to %}
-        AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+        AND {{ts}} BETWEEN '{{date_from}}' AND '{{date_to}}'
+        {% endif %}
+        {% if local_time %}
+        AND timezone_offset IS NOT NULL
+        {% if date_from and date_to %}
+        -- Real time bounds so the primary key can still be used, offsets range from -12h to +14h
+        AND timestamp BETWEEN toDateTime('{{date_from}}') - INTERVAL 14 HOUR AND toDateTime('{{date_to}}') + INTERVAL 12 HOUR
+        {% endif %}
         {% endif %}
     ) ARRAY JOIN props AS kv
     GROUP BY Key
@@ -24,7 +33,14 @@ SELECT Key, Type FROM (
         PREWHERE app_id = '{{app_id}}'
         WHERE event_name = '{{event_name}}'
         {% if date_from and date_to %}
-        AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+        AND {{ts}} BETWEEN '{{date_from}}' AND '{{date_to}}'
+        {% endif %}
+        {% if local_time %}
+        AND timezone_offset IS NOT NULL
+        {% if date_from and date_to %}
+        -- Real time bounds so the primary key can still be used, offsets range from -12h to +14h
+        AND timestamp BETWEEN toDateTime('{{date_from}}') - INTERVAL 14 HOUR AND toDateTime('{{date_to}}') + INTERVAL 12 HOUR
+        {% endif %}
         {% endif %}
     ) ARRAY JOIN props AS kv
     GROUP BY Key

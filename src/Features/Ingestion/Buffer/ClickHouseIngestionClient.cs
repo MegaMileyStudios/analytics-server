@@ -29,7 +29,8 @@ public class ClickHouseIngestionClient : IIngestionClient
         "city",
         "string_props",
         "numeric_props",
-        "ttl"
+        "ttl",
+        "timezone_offset"
     ];
 
     public ClickHouseIngestionClient(ClickHouseConnection conn, ILogger<ClickHouseIngestionClient> logger)
@@ -61,6 +62,7 @@ public class ClickHouseIngestionClient : IIngestionClient
             string_props = row.StringProps,
             numeric_props = row.NumericProps,
             ttl = row.TTL,
+            timezone_offset = row.TimezoneOffset,
         });
     }
 
@@ -95,6 +97,7 @@ public class ClickHouseIngestionClient : IIngestionClient
             row.StringProps,
             row.NumericProps,
             row.TTL,
+            row.TimezoneOffset ?? (object)DBNull.Value,
         });
         await bulkCopy.InitAsync();
         await bulkCopy.WriteToServerAsync(values, ct);

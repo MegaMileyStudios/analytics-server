@@ -197,6 +197,26 @@ public class ErrorReportingTests
         var body = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
         body!["error"].Should().Be("Invalid error payload");
     }
+
+    [Fact]
+    public async Task Can_Ingest_Error_With_Timezone_Offset()
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+
+        var client = new ErrorsClient(_fixture.CreateClient(), app.AppKey);
+        var code = await client.TrackError(ErrorsClient.NewError(DateTime.UtcNow, "NullReferenceException", "Something broke", timezoneOffset: 330));
+        code.Should().Be(HttpStatusCode.Accepted);
+        code = await client.TrackError(ErrorsClient.NewError(DateTime.UtcNow, "NullReferenceException", "Out of range", timezoneOffset: 5000));
+        code.Should().Be(HttpStatusCode.Accepted);
+
+        await _errorWritter.FlushErrors();
+
+        var conn = _fixture.Services.GetRequiredService<ClickHouseConnection>();
+        var offsets = await conn.QueryAsync<short?>(
+            "SELECT timezone_offset FROM error_events WHERE app_id = @app_id ORDER BY timezone_offset",
+            new { app_id = app.Id });
+        offsets.Should().Equal((short?)330, null);
+    }
 }
 
 public class ErrorsListResponse

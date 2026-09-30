@@ -21,9 +21,9 @@ public class ErrorBody
     public string? SdkVersion { get; set; }
     public string? SessionId { get; set; }
     public string? UserId { get; set; }
+    public int? TimezoneOffset { get; set; }
     public string? Severity { get; set; }
     public string? Kind { get; set; }
-    // Older SDKs don't send this field, so it defaults to false (release build)
     public bool IsDebug { get; set; }
 
     public bool IsValid()
@@ -70,6 +70,8 @@ public class ErrorBody
 
         if (!NormalizeUserId())
             return false;
+
+        TimezoneOffset = Ingestion.TimezoneOffset.Normalize(TimezoneOffset);
         
         return true;
     }

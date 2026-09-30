@@ -1,9 +1,8 @@
 import { useApps } from "@features/apps";
 import { useQuery } from "@tanstack/react-query";
-import { useAtomValue } from "jotai";
 import { Fragment, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { dateFilterValuesAtom } from "../../../atoms/date-atoms";
+import { useDateFilters } from "../mode/time-mode";
 import { topEventProps } from "../query";
 import { TopNChart } from "./TopNChart";
 import { TopNTitle } from "./TopNTitle";
@@ -17,7 +16,7 @@ type AggregateValueName = "events" | "sum" | "median" | "min" | "max";
 export function TopEventProps(props: Props) {
   const { buildMode } = useApps();
   const [searchParams] = useSearchParams();
-  const { startDateIso, endDateIso, granularity } = useAtomValue(dateFilterValuesAtom);
+  const { startDateIso, endDateIso, granularity, localTime } = useDateFilters();
 
   const countryCode = searchParams.get("countryCode") || "";
   const appVersion = searchParams.get("appVersion") || "";
@@ -42,6 +41,7 @@ export function TopEventProps(props: Props) {
       props.appId,
       startDateIso,
       endDateIso,
+      localTime,
       countryCode,
       appVersion,
       eventName,
@@ -58,6 +58,7 @@ export function TopEventProps(props: Props) {
         appVersion,
         eventName,
         osName,
+        localTime,
       }),
     staleTime: 10000,
     enabled: !!startDateIso && !!endDateIso && !!granularity,

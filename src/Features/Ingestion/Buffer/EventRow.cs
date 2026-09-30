@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Aptabase.Features.Ingestion.Buffer;
@@ -14,6 +15,7 @@ public readonly struct EventRow
     public readonly string EventName;
     public readonly string UserId;
     public readonly string? PersistentUserId;
+    public readonly short? TimezoneOffset;
     public readonly string SessionId;
     public readonly string OSName;
     public readonly string OSVersion;
@@ -40,6 +42,7 @@ public readonly struct EventRow
         EventName = e.EventName;
         UserId = userId;
         PersistentUserId = e.PersistentUserId;
+        TimezoneOffset = e.TimezoneOffset;
         SessionId = e.SessionId;
         OSName = e.OSName;
         OSVersion = e.OSVersion;
@@ -81,6 +84,7 @@ public readonly struct EventRow
         WriteProperty(writer, "city", "");
         WriteProperty(writer, "stringProps", StringProps);
         WriteProperty(writer, "numericProps", NumericProps);
+        WriteNullableNumber(writer, "timezoneOffset", TimezoneOffset);
         WriteProperty(writer, "ttl", TTL.ToString("o"), true);
         writer.Write("}");
     }
@@ -96,5 +100,10 @@ public readonly struct EventRow
             writer.Write($"\"{name}\": null {(isLast ? "" : ",")}");
         else
             WriteProperty(writer, name, value, isLast);
+    }
+
+    private static void WriteNullableNumber(StringWriter writer, string name, short? value, bool isLast = false)
+    {
+        writer.Write($"\"{name}\": {(value is null ? "null" : value.Value.ToString(CultureInfo.InvariantCulture))} {(isLast ? "" : ",")}");
     }
 }

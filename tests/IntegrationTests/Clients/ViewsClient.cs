@@ -12,6 +12,7 @@ public class ViewsClient
     public string OsName { get; set; } = "Windows";
     public string AppVersion { get; set; } = "1.0.0";
     public string? UserId { get; set; }
+    public int? TimezoneOffset { get; set; }
 
     public ViewsClient(HttpClient client, string appKey)
     {
@@ -70,5 +71,6 @@ public class ViewsClient
         appVersion = AppVersion,
         sdkVersion = "aptabase-unity@0.0.0",
         userId = UserId,
+        timezoneOffset = TimezoneOffset,
     };
 }

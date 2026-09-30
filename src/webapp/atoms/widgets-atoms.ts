@@ -31,6 +31,11 @@ export type PropertyChartWidgetConfig = {
   display?: "bar" | "bar-time" | "pie";
 };
 
+export type LocalPlayTimeWidgetConfig = {
+  display?: "histogram" | "heatmap";
+  metric?: "sessions" | "events";
+};
+
 export type WidgetType =
   | "custom-events-chart"
   | "custom-property-chart"
@@ -38,7 +43,8 @@ export type WidgetType =
   | "countries"
   | "operating-systems"
   | "events"
-  | "app-versions";
+  | "app-versions"
+  | "local-play-time";
 const userDefinedWidgetTypes: WidgetType[] = ["custom-events-chart", "custom-property-chart"];
 
 export type SingleWidgetConfig<T = any> = {
@@ -58,7 +64,12 @@ export type WidgetsConfig = {
 };
 
 const defaultWidth = (type: WidgetType): WidgetWidth =>
-  type === "custom-events-chart" || type === "custom-property-chart" || type === "events-chart" ? 6 : 3;
+  type === "custom-events-chart" ||
+  type === "custom-property-chart" ||
+  type === "events-chart" ||
+  type === "local-play-time"
+    ? 6
+    : 3;
 
 export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
   {
@@ -113,7 +124,28 @@ export const DEFAULT_WIDGETS_CONFIG: SingleWidgetConfig[] = [
     layout: { row: 3, col: 3, width: 3 },
     isDefined: true,
   },
+  {
+    id: "local-play-time",
+    title: "Local Play Time",
+    type: "local-play-time",
+    isMinimized: false,
+    layout: { row: 4, col: 0, width: 6 },
+    isDefined: true,
+  },
 ];
+
+// Built-in widgets added after a dashboard was saved are appended to it once, below everything else.
+// From then on they're saved with the rest, so they stay wherever the user moves them.
+const withBuiltInWidgets = (widgets: SingleWidgetConfig[]): SingleWidgetConfig[] => {
+  const missing = DEFAULT_WIDGETS_CONFIG.filter(
+    (w) => w.id === "local-play-time" && !widgets.some((x) => x.id === w.id)
+  );
+  if (missing.length === 0) return widgets;
+
+  const result = [...widgets];
+  missing.forEach((w) => result.push({ ...w, layout: { ...w.layout, row: nextFreeRow(result), col: 0 } }));
+  return result;
+};
 
 const EMPTY_CUSTOM_EVENTS_CHART_WIDGET: SingleWidgetConfig<EventsChartWidgetConfig> = {
   id: "events-chart",
@@ -145,7 +177,7 @@ export const getDashboardWidgetsForAppAtom = atom((get) => {
   const widgets = get(getDashboardWidgetAtom);
   const getWidgetsForApp = (appId: string) => {
     const widgetWithAppId = widgets?.[appId];
-    return widgetWithAppId ? withLayout(widgetWithAppId) : DEFAULT_WIDGETS_CONFIG;
+    return widgetWithAppId ? withBuiltInWidgets(withLayout(widgetWithAppId)) : DEFAULT_WIDGETS_CONFIG;
   };
   return getWidgetsForApp;
 });
@@ -194,7 +226,9 @@ export const dashboardWidgetsAtom = atom<null, [UpdateDashboardWidgetsAction], v
   (get, set, action) => {
     const widgetsConfig = get(getDashboardWidgetAtom);
     const mapResult = widgetsConfig ?? {};
-    const widgetsConfigArray: SingleWidgetConfig[] = withLayout(mapResult[action.appId] ?? DEFAULT_WIDGETS_CONFIG);
+    const widgetsConfigArray: SingleWidgetConfig[] = withBuiltInWidgets(
+      withLayout(mapResult[action.appId] ?? DEFAULT_WIDGETS_CONFIG)
+    );
 
     const result = produce(widgetsConfigArray, (draft) => {
       let widgetIndex = draft.findIndex((w) => w.id === action.widgetId);

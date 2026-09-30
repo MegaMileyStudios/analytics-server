@@ -10,6 +10,7 @@ public class IngestionClient
     private readonly string _appKey;
     private string? _sessionId = "";
     private string? _userId;
+    private int? _timezoneOffset;
 
     // Use this constructor to avoid rate limiting
     public IngestionClient(HttpClient client, string appKey)
@@ -40,6 +41,11 @@ public class IngestionClient
     public void SetUserId(string? value)
     {
         _userId = value;
+    }
+
+    public void SetTimezoneOffset(int? value)
+    {
+        _timezoneOffset = value;
     }
 
     public async Task<HttpStatusCode> TrackEvent(DateTime timestamp, string eventName, object? props)
@@ -81,7 +87,8 @@ public class IngestionClient
                 osVersion = "13.5",
                 appVersion = "1.0.0",
                 sdkVersion = "aptabase-swift@0.0.0",
-                userId = _userId
+                userId = _userId,
+                timezoneOffset = _timezoneOffset
             },
             props
         };

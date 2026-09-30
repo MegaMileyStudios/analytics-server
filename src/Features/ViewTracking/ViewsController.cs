@@ -118,6 +118,7 @@ public class ViewsController : Controller
             Timestamp = body.Timestamp.ToUniversalTime(),
             SessionId = body.SessionId,
             PersistentUserId = body.SystemProps.UserId,
+            TimezoneOffset = (short?)body.SystemProps.TimezoneOffset,
             ViewType = body.ViewType,
             ViewName = body.ViewName,
             OSName = body.SystemProps.OSName ?? "",

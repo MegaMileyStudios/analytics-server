@@ -1,13 +1,15 @@
 -- Counts the events per period and value of one string (or boolean) property of an event.
 -- Events of that name without the property are counted with Undefined = 1.
 -- Periods without any events are filled in with a single row of zero events.
+-- In local time mode (local_time) ts is the player's local wall-clock time, and date_from/date_to are local too.
+{% assign ts = "timestamp" %}{% if local_time %}{% assign ts = "(timestamp + toIntervalMinute(assumeNotNull(timezone_offset)))" %}{% endif %}
 SELECT
     {% if granularity == 'Hour' %}
-     toStartOfHour(timestamp)
+     toStartOfHour({{ts}})
     {% elsif granularity == 'Day' %}
-     toStartOfDay(timestamp)
+     toStartOfDay({{ts}})
     {% else %}
-     toStartOfMonth(timestamp)
+     toStartOfMonth({{ts}})
     {% endif %} AS Period,
     toUInt8(NOT JSONHas(string_props, '{{prop_key}}')) AS Undefined,
     if(Undefined = 1, '', JSONExtractString(string_props, '{{prop_key}}')) AS Value,
@@ -16,7 +18,14 @@ FROM events
 PREWHERE app_id = '{{app_id}}'
 WHERE event_name = '{{event_name}}'
 {% if date_from and date_to %}
-AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+AND {{ts}} BETWEEN '{{date_from}}' AND '{{date_to}}'
+{% endif %}
+{% if local_time %}
+AND timezone_offset IS NOT NULL
+{% if date_from and date_to %}
+-- Real time bounds so the primary key can still be used, offsets range from -12h to +14h
+AND timestamp BETWEEN toDateTime('{{date_from}}') - INTERVAL 14 HOUR AND toDateTime('{{date_to}}') + INTERVAL 12 HOUR
+{% endif %}
 {% endif %}
 GROUP BY Period, Undefined, Value
 ORDER BY Period ASC

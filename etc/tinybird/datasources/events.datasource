@@ -26,7 +26,8 @@ SCHEMA >
     `numeric_props` String `json:$.numericProps`,
     `ttl` DateTime `json:$.ttl`,
     `device_model` String `json:$.deviceModel`,
-    `persistent_user_id` Nullable(String) `json:$.persistentUserId`
+    `persistent_user_id` Nullable(String) `json:$.persistentUserId`,
+    `timezone_offset` Nullable(Int16) `json:$.timezoneOffset`
 
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"

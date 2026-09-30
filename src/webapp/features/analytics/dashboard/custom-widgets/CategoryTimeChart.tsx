@@ -16,6 +16,7 @@ type Props = {
   data?: EventPropDistributionSeries;
   stackMode: StackMode;
   granularity: Granularity;
+  wallClock?: boolean;
   isLoading?: boolean;
   isError?: boolean;
   refetch?: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<unknown, Error>>;
@@ -60,7 +61,7 @@ export function CategoryTimeChart(props: Props) {
               maxTicksLimit: 8,
               callback: function (value) {
                 const label = typeof value === "number" ? this.getLabelForValue(value) : value;
-                return formatPeriod(props.granularity, label.toString());
+                return formatPeriod(props.granularity, label.toString(), props.wallClock);
               },
             },
           },
@@ -83,7 +84,7 @@ export function CategoryTimeChart(props: Props) {
           },
           tooltip: {
             callbacks: {
-              title: (items) => formatPeriod(props.granularity, items[0]?.label ?? ""),
+              title: (items) => formatPeriod(props.granularity, items[0]?.label ?? "", props.wallClock),
               label: (ctx) => {
                 const value = series[ctx.datasetIndex].values[ctx.dataIndex];
                 const total = totals[ctx.dataIndex];
@@ -95,7 +96,7 @@ export function CategoryTimeChart(props: Props) {
         },
       },
     };
-  }, [props.data, props.stackMode, props.granularity, colors]);
+  }, [props.data, props.stackMode, props.granularity, props.wallClock, colors]);
 
   const isEmpty = series.every((s) => s.values.every((v) => v === 0));
 

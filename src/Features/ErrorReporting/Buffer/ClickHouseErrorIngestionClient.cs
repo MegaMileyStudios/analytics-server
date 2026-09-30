@@ -23,7 +23,8 @@ public class ClickHouseErrorIngestionClient : IErrorIngestionClient
         "persistent_user_id",
         "severity",
         "kind",
-        "ttl"
+        "ttl",
+        "timezone_offset"
     ];
 
     public ClickHouseErrorIngestionClient(ClickHouseConnection conn, ILogger<ClickHouseErrorIngestionClient> logger)
@@ -57,6 +58,7 @@ public class ClickHouseErrorIngestionClient : IErrorIngestionClient
             row.Severity,
             row.Kind,
             row.TTL,
+            row.TimezoneOffset ?? (object)DBNull.Value,
         });
         await bulkCopy.InitAsync();
         await bulkCopy.WriteToServerAsync(values, ct);

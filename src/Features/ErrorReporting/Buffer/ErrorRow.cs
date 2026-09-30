@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Aptabase.Features.ErrorReporting.Buffer;
@@ -20,6 +21,7 @@ public readonly struct ErrorRow
     public readonly string SdkVersion;
     public readonly string SessionId;
     public readonly string? PersistentUserId;
+    public readonly short? TimezoneOffset;
     public readonly string Severity;
     public readonly string Kind;
     public readonly DateTime TTL;
@@ -39,6 +41,7 @@ public readonly struct ErrorRow
         SdkVersion = e.SdkVersion ?? "";
         SessionId = e.SessionId ?? "";
         PersistentUserId = e.PersistentUserId;
+        TimezoneOffset = e.TimezoneOffset;
         Severity = e.Severity ?? "";
         Kind = e.Kind ?? "";
         TTL = e.Timestamp.Add(ErrorTTL);
@@ -62,6 +65,7 @@ public readonly struct ErrorRow
         WriteNullableProperty(writer, "persistentUserId", PersistentUserId);
         WriteProperty(writer, "severity", Severity);
         WriteProperty(writer, "kind", Kind);
+        WriteNullableNumber(writer, "timezoneOffset", TimezoneOffset);
         WriteProperty(writer, "ttl", TTL.ToString("o"), true);
         writer.Write("}");
     }
@@ -77,5 +81,10 @@ public readonly struct ErrorRow
             writer.Write($"\"{name}\": null {(isLast ? "" : ",")}");
         else
             WriteProperty(writer, name, value, isLast);
+    }
+
+    private static void WriteNullableNumber(StringWriter writer, string name, short? value, bool isLast = false)
+    {
+        writer.Write($"\"{name}\": {(value is null ? "null" : value.Value.ToString(CultureInfo.InvariantCulture))} {(isLast ? "" : ",")}");
     }
 }

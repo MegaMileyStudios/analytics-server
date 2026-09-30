@@ -1,16 +1,18 @@
 -- Users with a persistent ID are counted by it, the others by their (daily rotating) user_id.
 -- A user_id is resolved to a persistent ID if any of its events sent one, so it's never counted twice.
 -- Month granularity averages daily users, so persistent users are counted once per day there.
+-- In local time mode (local_time) ts is the player's local wall-clock time, and date_from/date_to are local too.
+{% assign ts = "timestamp" %}{% if local_time %}{% assign ts = "(timestamp + toIntervalMinute(assumeNotNull(timezone_offset)))" %}{% endif %}
 SELECT
     {% if granularity == 'Hour' %}
-     toStartOfHour(timestamp)
+     toStartOfHour(ts)
     {% elsif granularity == 'Day' %}
-     toStartOfDay(timestamp)
+     toStartOfDay(ts)
     {% else %}
-     toStartOfMonth(timestamp)
+     toStartOfMonth(ts)
     {% endif %} AS Period,
     {% if granularity == 'Month' %}
-     uniqExactIf((toDate(timestamp), persistent_user_id), persistent_user_id IS NOT NULL) / (date_diff('day', Period, toLastDayOfMonth(Period)) + 1)
+     uniqExactIf((toDate(ts), persistent_user_id), persistent_user_id IS NOT NULL) / (date_diff('day', Period, toLastDayOfMonth(Period)) + 1)
     {% else %}
      uniqExactIf(persistent_user_id, persistent_user_id IS NOT NULL)
     {% endif %} AS PersistentUsers,
@@ -27,7 +29,7 @@ SELECT
     countIf(persistent_user_id IS NULL) AS InferredEvents,
     PersistentEvents + InferredEvents AS Events
 FROM (
-    SELECT timestamp,
+    SELECT {{ts}} AS ts,
            user_id,
            session_id,
            max(persistent_user_id) OVER (PARTITION BY user_id) AS persistent_user_id
@@ -35,7 +37,14 @@ FROM (
     PREWHERE app_id = '{{app_id}}'
     WHERE 1 = 1
     {% if date_from and date_to %}
-    AND timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'
+    AND {{ts}} BETWEEN '{{date_from}}' AND '{{date_to}}'
+    {% endif %}
+    {% if local_time %}
+    AND timezone_offset IS NOT NULL
+    {% if date_from and date_to %}
+    -- Real time bounds so the primary key can still be used, offsets range from -12h to +14h
+    AND timestamp BETWEEN toDateTime('{{date_from}}') - INTERVAL 14 HOUR AND toDateTime('{{date_to}}') + INTERVAL 12 HOUR
+    {% endif %}
     {% endif %}
     {% if country_code %}
     AND country_code = '{{country_code}}'

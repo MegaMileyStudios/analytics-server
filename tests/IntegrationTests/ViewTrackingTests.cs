@@ -1,4 +1,6 @@
 using System.Net;
+using ClickHouse.Client.ADO;
+using Dapper;
 using Xunit;
 using AwesomeAssertions;
 using Aptabase.Features.Apps;
@@ -226,5 +228,22 @@ public class ViewTrackingTests
         var response = await _fixture.UserB.GetViewStats("main", app.Id, DateTime.UtcNow.AddDays(-1), DateTime.UtcNow);
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Views_Store_The_Timezone_Offset()
+    {
+        var app = await _fixture.UserA.CreateApp(Guid.NewGuid().ToString());
+        var client = new ViewsClient(_fixture.CreateClient(), app.AppKey) { TimezoneOffset = 540 };
+
+        var response = await client.PostView(DateTime.UtcNow, "MainScreenChange", "Main Menu");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await _viewWritter.FlushViews();
+
+        var conn = _fixture.Services.GetRequiredService<ClickHouseConnection>();
+        var offsets = await conn.QueryAsync<short?>(
+            "SELECT timezone_offset FROM view_events WHERE app_id = @app_id",
+            new { app_id = app.Id });
+        offsets.Should().ContainSingle().Which.Should().Be(540);
     }
 }

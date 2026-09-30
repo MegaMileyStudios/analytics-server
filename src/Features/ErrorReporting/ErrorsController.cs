@@ -142,6 +142,7 @@ public class ErrorsController : ControllerBase
             SdkVersion = body.SdkVersion,
             SessionId = body.SessionId,
             PersistentUserId = body.UserId,
+            TimezoneOffset = (short?)body.TimezoneOffset,
             Severity = body.Severity,
             Kind = body.Kind,
             IsDebug = body.IsDebug

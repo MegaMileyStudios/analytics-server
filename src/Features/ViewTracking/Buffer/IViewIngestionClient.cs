@@ -30,7 +30,8 @@ public class ClickHouseViewIngestionClient : IViewIngestionClient
         "sdk_version",
         "country_code",
         "region_name",
-        "ttl"
+        "ttl",
+        "timezone_offset"
     ];
 
     public ClickHouseViewIngestionClient(ClickHouseConnection conn)
@@ -66,6 +67,7 @@ public class ClickHouseViewIngestionClient : IViewIngestionClient
             row.CountryCode,
             row.RegionName,
             row.TTL,
+            row.TimezoneOffset ?? (object)DBNull.Value,
         });
         await bulkCopy.InitAsync();
         await bulkCopy.WriteToServerAsync(values, ct);

@@ -21,6 +21,7 @@ export type QueryParams = {
   propKey?: string;
   pageSize?: number;
   mainView?: string;
+  localTime?: boolean;
 };
 
 export type TopNQueryChildrenProps = {
@@ -151,6 +152,29 @@ export type EventPropDistributionSeries = {
 
 export function eventPropDistributionPeriodic(params: QueryParams): Promise<EventPropDistributionSeries> {
   return api.get<EventPropDistributionSeries>(`/_stats/event-prop-distribution-periodic`, params);
+}
+
+export type LocalPlayTimeMetric = "sessions" | "events";
+
+export type LocalPlayTimeParams = QueryParams & {
+  metric: LocalPlayTimeMetric;
+  // The viewer's IANA time zone, used outside of local time mode
+  timeZone: string;
+};
+
+// dayOfWeek is 1 (Monday) to 7 (Sunday), hour is 0 to 23. Empty cells are left out.
+export type LocalPlayTimeCell = {
+  dayOfWeek: number;
+  hour: number;
+  value: number;
+};
+
+export function localPlayTime(params: LocalPlayTimeParams): Promise<LocalPlayTimeCell[]> {
+  return api.get<LocalPlayTimeCell[]>(`/_stats/local-play-time`, params);
+}
+
+export function missingTimezoneOffset(params: QueryParams): Promise<{ events: number }> {
+  return api.get<{ events: number }>(`/_stats/missing-timezone-offset`, params);
 }
 
 export type CohortGranularity = "day" | "week" | "month";
