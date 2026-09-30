@@ -1,9 +1,9 @@
 name: Backup round-trip test
 on:
-  # Merging a PR into main pushes to main
   push:
     branches:
       - main
+  workflow_call:
   workflow_dispatch:
 
 jobs:

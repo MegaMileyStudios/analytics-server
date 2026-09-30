@@ -27,7 +27,7 @@ jobs:
         uses: megamiley/ssh-upload@main
         with:
           host: ${{ secrets.DEV_SSH_HOST }}
-          port: 48122
+          port: ${{ secrets.DEV_SSH_PORT }}
           username: ${{ secrets.DEV_SSH_USER }}
           private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           transfers: |
@@ -39,7 +39,7 @@ jobs:
         uses: megamiley/ssh-command@main
         with:
           host: ${{ secrets.DEV_SSH_HOST }}
-          port: 48122
+          port: ${{ secrets.DEV_SSH_PORT }}
           username: ${{ secrets.DEV_SSH_USER }}
           private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           command: |

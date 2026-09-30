@@ -1,0 +1,51 @@
+version: "3"
+services:
+  app:
+    image: analytics-server:latest
+    container_name: analytics_app
+    restart: always
+    ports:
+      - "127.0.0.1:5251:8080"
+    env_file: .env
+    depends_on:
+      - postgres
+      - clickhouse
+
+  postgres:
+    image: postgres:15
+    container_name: analytics_postgres
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    env_file: .env
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8.4.69
+    container_name: analytics_clickhouse
+    restart: always
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - backup-staging:/backups
+      - ./clickhouse/backups.xml:/etc/clickhouse-server/config.d/backups.xml:ro
+    env_file: .env
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  backup:
+    image: analytics-backup:latest
+    container_name: analytics_backup
+    restart: always
+    volumes:
+      - backup-staging:/backups
+      - ${BACKUP_HOST_DIR:-/var/backups/analytics}:/output
+    env_file: .env
+    depends_on:
+      - postgres
+      - clickhouse
+
+volumes:
+  postgres-data:
+  clickhouse-data:
+  backup-staging:

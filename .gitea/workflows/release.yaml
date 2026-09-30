@@ -1,13 +1,142 @@
 name: Release
 on:
-  push:
-    branches:
-      - release
+  release:
+    types:
+      - published
   workflow_dispatch:
 
 jobs:
+  test:
+    name: Tests
+    uses: ./.gitea/workflows/test.yaml
+    secrets: inherit
+
+  backup-roundtrip:
+    name: Backup round trip
+    uses: ./.gitea/workflows/backup-roundtrip-test.yaml
+    secrets: inherit
+
+  deploy-production:
+    name: Deploy to production
+    needs:
+      - test
+      - backup-roundtrip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: megamiley/ssh-checkout@main
+        with:
+          ref: ${{ github.ref_name }}
+          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            tag="${{ github.ref_name }}"
+          else
+            tag="manual-$(git rev-parse --short HEAD)"
+          fi
+          tag="$(printf '%s' "$tag" | tr -c 'A-Za-z0-9_.-' '-')"
+          echo "Image tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker images
+        run: |
+          docker build -t analytics-server:latest -t "analytics-server:${{ steps.tag.outputs.tag }}" .
+          docker build -t analytics-backup:latest -t "analytics-backup:${{ steps.tag.outputs.tag }}" deploy/backup
+
+      - name: Save images to archive
+        run: |
+          docker save \
+            analytics-server:latest "analytics-server:${{ steps.tag.outputs.tag }}" \
+            analytics-backup:latest "analytics-backup:${{ steps.tag.outputs.tag }}" \
+            | gzip > analytics-server.tar.gz
+
+      - name: Upload images + compose files to /opt/analytics
+        uses: megamiley/ssh-upload@main
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          transfers: |
+            analytics-server.tar.gz | /opt/analytics/
+            deploy/docker-compose.prod.yml | /opt/analytics/
+            deploy/clickhouse/backups.xml | /opt/analytics/
+
+      - name: Load image, restart stack and roll back if unhealthy
+        uses: megamiley/ssh-command@main
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command: |
+            set -e
+            cd /opt/analytics
+
+            wait_healthy() {
+              for attempt in $(seq 1 30); do
+                if curl -fsS -o /dev/null http://127.0.0.1:5251/healthz; then
+                  return 0
+                fi
+                sleep 2
+              done
+              return 1
+            }
+
+            # Keep what's running now, so a release that doesn't come up healthy
+            # can be swapped back out instead of leaving the service down.
+            has_previous=false
+            if docker image inspect analytics-server:latest > /dev/null 2>&1 && [ -f docker-compose.yml ]; then
+              has_previous=true
+              docker tag analytics-server:latest analytics-server:previous
+              docker tag analytics-backup:latest analytics-backup:previous
+              cp -f docker-compose.yml docker-compose.previous.yml
+              cp -f clickhouse/backups.xml backups.previous.xml
+            fi
+
+            mv -f docker-compose.prod.yml docker-compose.yml
+            mkdir -p clickhouse
+            mv -f backups.xml clickhouse/backups.xml
+            docker load -i analytics-server.tar.gz
+            rm analytics-server.tar.gz
+            docker compose up -d
+
+            if wait_healthy; then
+              # Cleanup must never fail a deploy that is already live.
+              docker image prune -f || echo "Pruning old images failed, ignoring"
+              echo "App is healthy (release ${{ steps.tag.outputs.tag }})"
+              exit 0
+            fi
+
+            echo "Release ${{ steps.tag.outputs.tag }} did not become healthy within 60 seconds, last log lines:"
+            docker compose logs --tail 50 app
+
+            if [ "$has_previous" != "true" ]; then
+              echo "No previous version on this server to roll back to."
+              exit 1
+            fi
+
+            echo "Rolling back to the previous version"
+            docker tag analytics-server:previous analytics-server:latest
+            docker tag analytics-backup:previous analytics-backup:latest
+            mv -f docker-compose.previous.yml docker-compose.yml
+            mv -f backups.previous.xml clickhouse/backups.xml
+            docker compose up -d
+            if wait_healthy; then
+              echo "Rolled back, the previous version is healthy again."
+            else
+              echo "ROLLBACK FAILED: the previous version is not healthy either, last log lines:"
+              docker compose logs --tail 50 app
+            fi
+            # Fail the job either way, so the release isn't mirrored as if it were live.
+            exit 1
+
   mirror-github:
     name: Mirror source to GitHub
+    needs: deploy-production
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -20,10 +149,9 @@ jobs:
         env:
           TOKEN: ${{ secrets.GHUB_MIRROR_TOKEN }}
         run: |
-          git push "https://x-access-token:${TOKEN}@github.com/MegaMileyStudios/analytics-server.git" HEAD:main --force
-
-  # deploy-production:
-  #   Out of scope for now. When ready, add a job here that builds/deploys
-  #   the way deploy-dev.yaml does, but against PROD_SSH_HOST/PROD_SSH_USER/
-  #   PROD_SSH_PRIVATE_KEY and the production host, following
-  #   BallsyDropRelayServer/.gitea/workflows/deploy-prod.yaml's shape.
+          # The mirror always matches what runs in production, including its release tag.
+          refs="HEAD:main"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            refs="$refs HEAD:refs/tags/${{ github.ref_name }}"
+          fi
+          git push "https://x-access-token:${TOKEN}@github.com/MegaMileyStudios/analytics-server.git" $refs --force
