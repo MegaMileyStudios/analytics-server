@@ -134,6 +134,16 @@ public partial class Program
                     Window = TimeSpan.FromSeconds(1)
                 })
             );
+
+            c.AddPolicy("DeletionRequest", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.ResolveClientIpAddress(),
+                partition => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromHours(1)
+                })
+            );
         });
 
         builder.Services.AddSingleton(appEnv);
@@ -179,6 +189,8 @@ public partial class Program
             builder.Services.AddSingleton<IErrorIngestionClient, ClickHouseErrorIngestionClient>();
             builder.Services.AddSingleton<IErrorQueryClient, ClickHouseErrorQueryClient>();
             builder.Services.AddSingleton<IViewIngestionClient, ClickHouseViewIngestionClient>();
+            builder.Services.AddSingleton<IUserDataEraser, ClickHouseUserDataEraser>();
+            builder.Services.AddHostedService<ProcessDeletionRequestsCronJob>();
         }
         else
         {

@@ -11,6 +11,7 @@ public class ViewsClient
     public bool IsDebug { get; set; }
     public string OsName { get; set; } = "Windows";
     public string AppVersion { get; set; } = "1.0.0";
+    public string? UserId { get; set; }
 
     public ViewsClient(HttpClient client, string appKey)
     {
@@ -68,5 +69,6 @@ public class ViewsClient
         osVersion = "11",
         appVersion = AppVersion,
         sdkVersion = "aptabase-unity@0.0.0",
+        userId = UserId,
     };
 }
