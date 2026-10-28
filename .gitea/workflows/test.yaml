@@ -57,6 +57,21 @@ jobs:
             echo "$HOME/.dotnet" >> "$GITHUB_PATH"
           fi
 
+      - name: Install LLVM 18 and binutils
+        shell: bash
+        run: |
+          if command -v llvm-symbolizer-18 >/dev/null 2>&1 && command -v readelf >/dev/null 2>&1; then
+            echo "LLVM already present: $(llvm-symbolizer-18 --version | head -n 2 | tail -n 1)"
+          else
+            apt-get update
+            if ! apt-get install -y --no-install-recommends llvm-18 binutils; then
+              # Older Ubuntu releases don't ship LLVM 18, apt.llvm.org does
+              apt-get install -y --no-install-recommends wget lsb-release software-properties-common gnupg binutils
+              wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+              bash /tmp/llvm.sh 18
+            fi
+          fi
+
       - name: Run Unit Tests
         run: dotnet test
         working-directory: tests/UnitTests

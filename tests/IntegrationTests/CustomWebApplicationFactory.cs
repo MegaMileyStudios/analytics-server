@@ -16,6 +16,7 @@ public class CustomWebApplicationFactory<TProgram>
         SetIfMissing("SMTP_HOST", "localhost");
         Environment.SetEnvironmentVariable("SMTP_PORT", "1025");
         Environment.SetEnvironmentVariable("SMTP_FROM_ADDRESS", "abc@hi.com");
+        Environment.SetEnvironmentVariable("SYMBOLS_PATH", Path.Combine(Path.GetTempPath(), "aptabase-integration-tests-symbols"));
     }
 
     private static void SetIfMissing(string key, string value)

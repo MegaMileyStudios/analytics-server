@@ -79,6 +79,41 @@ public class AccountClient
         return await _client.GetAsync($"/api/v0/apps/{appId}/errors/{errorId}?buildMode=release");
     }
 
+    public async Task<HttpResponseMessage> GetSymbolication(string appId, string errorId)
+    {
+        return await _client.GetAsync($"/api/v0/apps/{appId}/errors/{errorId}/symbolication?buildMode=release");
+    }
+
+    public async Task<HttpResponseMessage> Symbolicate(string appId, string errorId)
+    {
+        return await _client.PostAsync($"/api/v0/apps/{appId}/errors/{errorId}/symbolicate?buildMode=release", null);
+    }
+
+    public async Task<HttpResponseMessage> CreateSymbolUploadKey(string name)
+    {
+        return await _client.PostAsJsonAsync("/api/_symbols/keys", new { name });
+    }
+
+    public async Task<HttpResponseMessage> ListSymbolUploadKeys()
+    {
+        return await _client.GetAsync("/api/_symbols/keys");
+    }
+
+    public async Task<HttpResponseMessage> DeleteSymbolUploadKey(string id)
+    {
+        return await _client.DeleteAsync($"/api/_symbols/keys/{id}");
+    }
+
+    public async Task<HttpResponseMessage> ListSymbolUploads()
+    {
+        return await _client.GetAsync("/api/_symbols/uploads");
+    }
+
+    public async Task<HttpResponseMessage> DeleteSymbolUpload(string id)
+    {
+        return await _client.DeleteAsync($"/api/_symbols/uploads/{id}");
+    }
+
     public async Task<SessionTimeline?> GetSessionTimeline(string appId, object sessionId)
     {
         return await _client.GetFromJsonAsync<SessionTimeline>($"/api/_stats/live-session-details?buildMode=release&appId={appId}&sessionId={sessionId}");

@@ -28,5 +28,6 @@
   <ItemGroup>
     <None Include="../../etc/geoip/**" CopyToOutputDirectory="PreserveNewest" LinkBase="etc/geoip" />
     <None Include="../../etc/clickhouse/**" CopyToOutputDirectory="PreserveNewest" LinkBase="etc/clickhouse" />
+    <None Include="../Fixtures/**" CopyToOutputDirectory="PreserveNewest" LinkBase="Fixtures" />
   </ItemGroup>
 </Project>

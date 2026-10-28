@@ -14,6 +14,9 @@ using Aptabase.Features.Ingestion.Buffer;
 using Aptabase.Features.Notification;
 using Aptabase.Features.Privacy;
 using Aptabase.Features.Stats;
+using Aptabase.Features.Symbolication;
+using Aptabase.Features.Symbolication.Engine;
+using Aptabase.Features.Symbolication.Store;
 using Aptabase.Features.ViewTracking.Buffer;
 using ClickHouse.Client.ADO;
 using Features.Cache;
@@ -143,6 +146,17 @@ public partial class Program
                     Window = TimeSpan.FromHours(1)
                 })
             );
+
+            // A CI run uploads a handful of archives (engine and game, per platform)
+            c.AddPolicy("SymbolUpload", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.ResolveClientIpAddress(),
+                partition => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromHours(1)
+                })
+            );
         });
 
         builder.Services.AddSingleton(appEnv);
@@ -188,6 +202,19 @@ public partial class Program
         builder.Services.AddSingleton<IViewIngestionClient, ClickHouseViewIngestionClient>();
         builder.Services.AddSingleton<IUserDataEraser, ClickHouseUserDataEraser>();
         builder.Services.AddHostedService<ProcessDeletionRequestsCronJob>();
+
+        builder.Services.AddSingleton<LlvmTools>();
+        builder.Services.AddSingleton<SymbolStorage>();
+        builder.Services.AddSingleton<ISymbolStore, SymbolStore>();
+        builder.Services.AddSingleton<SymbolFileInspector>();
+        builder.Services.AddSingleton<SymbolIndexer>();
+        builder.Services.AddSingleton<SymbolUploadService>();
+        builder.Services.AddSingleton<LlvmSymbolizer>();
+        builder.Services.AddSingleton<FunctionTableCache>();
+        builder.Services.AddSingleton<Symbolicator>();
+        builder.Services.AddSingleton<ISymbolicationClient, ClickHouseSymbolicationClient>();
+        builder.Services.AddSingleton<SymbolicationService>();
+        builder.Services.AddHostedService<SymbolicationWorker>();
 
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
         builder.Services.AddSingleton<IDbContext, DbContext>();

@@ -1,10 +1,9 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@components/Dialog";
 import { LoadingState } from "@components/LoadingState";
 import { useApps } from "@features/apps";
-import { IconCheck, IconCopy } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { SymbolicatedStackTrace } from "./SymbolicatedStackTrace";
 
 interface ErrorDetail {
   errorId: string;
@@ -45,7 +44,6 @@ async function fetchErrorDetail(appId: string, errorId: string, buildMode: strin
 
 export function ErrorDetailModal({ appId, errorId, open, onClose }: ErrorDetailModalProps) {
   const { buildMode } = useApps();
-  const [justCopied, setJustCopied] = useState(false);
   const navigate = useNavigate();
 
   const { data: error, isLoading } = useQuery({
@@ -53,14 +51,6 @@ export function ErrorDetailModal({ appId, errorId, open, onClose }: ErrorDetailM
     queryFn: () => fetchErrorDetail(appId, errorId!, buildMode),
     enabled: !!errorId && open,
   });
-
-  const handleCopyStackTrace = () => {
-    if (error?.stackTrace) {
-      navigator.clipboard.writeText(error.stackTrace);
-      setJustCopied(true);
-      setTimeout(() => setJustCopied(false), 2000);
-    }
-  };
 
   const handleClickSessionId = (sessionId: string) => () => {
     // Get the current location to preserve search params
@@ -160,30 +150,12 @@ export function ErrorDetailModal({ appId, errorId, open, onClose }: ErrorDetailM
 
               {/* Stack Trace Section */}
               {error.stackTrace && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold">Stack Trace</h3>
-                    <button
-                      onClick={handleCopyStackTrace}
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {justCopied ? (
-                        <>
-                          <IconCheck className="h-4 w-4" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <IconCopy className="h-4 w-4" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <pre className="bg-muted p-4 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap break-words">
-                    {error.stackTrace}
-                  </pre>
-                </div>
+                <SymbolicatedStackTrace
+                  appId={appId}
+                  errorId={error.errorId}
+                  buildMode={buildMode}
+                  stackTrace={error.stackTrace}
+                />
               )}
             </div>
           </>

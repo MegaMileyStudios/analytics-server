@@ -1,0 +1,62 @@
+Build: 0-5-0-1793188397-Full_Release (osx-arm64)
+handle_crash: Program crashed with signal 5
+Engine version: Godot Engine v4.7.3.rc.mono.custom_build (cc72c7b7f59b2f4be11d125a0c5d2fb2359ff225)
+Dumping the backtrace. Please include this when reporting the bug to the project developer.
+Load address: 100268000
+[0] 100986648 (main+71e648) - ??
+[1] 1878b1744 (libsystem_platform.dylib+3744) - _sigtramp + 56
+[2] 1022fdba0 (main+2095ba0) - ??
+[3] 124194e40 (BallsyDrop.dylib+7a0e40) - godotsharp_game_main_init + 7102704
+[4] 123c23bf8 (BallsyDrop.dylib+22fbf8) - godotsharp_game_main_init + 1396392
+[5] 123b2d43c (BallsyDrop.dylib+13943c) - godotsharp_game_main_init + 386796
+[6] 123d91374 (BallsyDrop.dylib+39d374) - godotsharp_game_main_init + 2893348
+[7] 123e7919c (BallsyDrop.dylib+48519c) - godotsharp_game_main_init + 3843148
+[8] 123ea04d0 (BallsyDrop.dylib+4ac4d0) - godotsharp_game_main_init + 4003712
+[9] 123b2dfe4 (BallsyDrop.dylib+139fe4) - godotsharp_game_main_init + 389780
+[10] 124225854 (BallsyDrop.dylib+831854) - godotsharp_game_main_init + 7695108
+[11] 1015b5d78 (main+134dd78) - ??
+[12] 1015b5cb0 (main+134dcb0) - ??
+[13] 1015ce9b4 (main+13669b4) - ??
+[14] 1015ee248 (main+1386248) - ??
+[15] 1015ee170 (main+1386170) - ??
+[16] 10160a484 (main+13a2484) - ??
+[17] 1015fd720 (main+1395720) - ??
+[18] 1024ad9cc (main+22459cc) - ??
+[19] 10098eb80 (main+726b80) - ??
+[20] 10098e87c (main+72687c) - ??
+[21] 102480d98 (main+2218d98) - ??
+[22] 10247f098 (main+2217098) - ??
+[23] 10099b878 (main+733878) - ??
+[24] 100981c54 (main+719c54) - ??
+[25] 187964344 (CoreFoundation+7d344) - __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ + 36
+[26] 187964240 (CoreFoundation+7d240) - __CFRunLoopDoObservers + 648
+[27] 1879638ec (CoreFoundation+7c8ec) - __CFRunLoopRun + 924
+[28] 187a36264 (CoreFoundation+14f264) - _CFRunLoopRunSpecificWithOptions + 532
+[29] 19474f560 (HIToolbox+bd560) - RunCurrentEventLoopInMode + 320
+[30] 1947528bc (HIToolbox+c08bc) - ReceiveNextEventCommon + 488
+[31] 1948dc14c (HIToolbox+24a14c) - _BlockUntilNextEventMatchingListInMode + 48
+[32] 18c4463d0 (AppKit+6e53d0) - _DPSBlockUntilNextEventMatchingListInMode + 228
+[33] 18bd9a084 (AppKit+39084) - _DPSNextEvent + 576
+[34] 18c92f96c (AppKit+bce96c) - -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 688
+[35] 18c92f678 (AppKit+bce678) - -[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:] + 72
+[36] 18bd8d13c (AppKit+2c13c) - -[NSApplication run] + 368
+[37] 1009bbabc (main+753abc) - ??
+[38] 1874dc4e4 (dyld+204e4) - start + 6992
+Modules:
+libsystem_platform.dylib (libsystem_platform.dylib) - base: 1878ae000, UUID: EDB83A19-EC17-32DE-9350-6145970A85D6
+main (BallsyDrop) - base: 100268000, UUID: EB16A950-A45C-3AFB-90B6-FF978C7AF619
+BallsyDrop.dylib (BallsyDrop.dylib) - base: 1239f4000, UUID: D5AFCC57-C739-3F1E-A482-E9F5B2BF9887
+CoreFoundation (CoreFoundation) - base: 1878e7000, UUID: 9B672762-7B1F-30BC-96DE-F176B372D66D
+HIToolbox (HIToolbox) - base: 194692000, UUID: 38408482-CE3B-359E-9465-7FEB4BB79B54
+AppKit (AppKit) - base: 18bd61000, UUID: B6B4BDAD-6428-3E64-8747-275700109B46
+dyld (dyld) - base: 1874bc000, UUID: 74E52480-C2BD-3C8D-812D-95FE2B74A096
+-- END OF C++ BACKTRACE --
+C# backtrace (most recent call first):
+    [0] bool BallsyDrop.Analytics.ErrorReportingTest.Trigger(Godot.Key)
+    [1] void BallsyDrop.UI.Main.MainMenu._UnhandledInput(Godot.InputEvent)
+    [2] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [3] bool Godot.CanvasItem.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [4] bool Godot.Control.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [5] bool BallsyDrop.UI.Main.MainMenu.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [6]
+-- END OF C# BACKTRACE --

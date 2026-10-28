@@ -31,6 +31,10 @@ public class ExceptionMiddleware
         {
             context.Response.StatusCode = 418; // I'm a teapot
         }
+        catch (BadHttpRequestException ex) when (ex.StatusCode == (int)HttpStatusCode.RequestEntityTooLarge && !context.Response.HasStarted)
+        {
+            context.Response.StatusCode = ex.StatusCode;
+        }
 #pragma warning disable CS0618 // Type or member is obsolete
         catch (Microsoft.AspNetCore.Server.Kestrel.Core.BadHttpRequestException)
         {

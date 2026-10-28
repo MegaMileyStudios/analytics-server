@@ -1,0 +1,10 @@
+SELECT app_id as AppId,
+       error_id as ErrorId,
+       timestamp as Timestamp,
+       stack_trace as StackTrace
+FROM error_events
+WHERE timestamp >= now() - INTERVAL {{days}} DAY
+AND startsWith(stack_trace, 'Build: ')
+AND (app_id, error_id) NOT IN (SELECT app_id, error_id FROM error_symbolications)
+ORDER BY timestamp DESC
+LIMIT {{limit}}

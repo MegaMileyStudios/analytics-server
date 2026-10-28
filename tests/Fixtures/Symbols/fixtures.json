@@ -1,0 +1,5 @@
+{
+  "linux-x64": { "debugId": "03fc82ab0bc8b9b2fa52b20c1c68a3ced8f2fe1f", "functions": { "Game_Game_Main__Crash": "0x0000000000001030", "Game_Game_Main__Run": "0x0000000000001050", "godotsharp_game_main_init": "0x0000000000001080" } },
+  "win-x64": { "debugId": "25A1058E4FD6A3764C4C44205044422E1", "functions": { "Game_Game_Main__Run": "0x1020", "godotsharp_game_main_init": "0x1050", "Game_Game_Main__Crash": "0x1000" } },
+  "osx-arm64": { "debugId": "4C4C445755553144A1462020AEE7492C", "functions": { "Game_Game_Main__Crash": "0x00000000000002a0", "Game_Game_Main__Run": "0x00000000000002c4", "godotsharp_game_main_init": "0x00000000000002f4" } }
+}

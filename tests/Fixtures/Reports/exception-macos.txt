@@ -1,0 +1,5 @@
+Build: 0-5-0-1793188397-Full_Release (osx-arm64)
+System.InvalidOperationException: Error reporting test: unhandled exception on a background thread
+   at BallsyDrop.Analytics.ErrorReportingTest.<>c.<Trigger>b__0_0() + 0x30
+   at System.Threading.Thread.StartThread(IntPtr) + 0xd8
+   at System.Threading.Thread.ThreadEntryPoint(IntPtr) + 0x20

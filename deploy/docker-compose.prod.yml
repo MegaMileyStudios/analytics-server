@@ -7,6 +7,11 @@ services:
     ports:
       - "127.0.0.1:5251:8080"
     env_file: .env
+    environment:
+      SYMBOLS_PATH: /data/symbols
+    volumes:
+      # Uploaded debug symbols, not part of the backups (the CI artifacts are the source)
+      - symbols-data:/data/symbols
     depends_on:
       - postgres
       - clickhouse
@@ -49,3 +54,4 @@ volumes:
   postgres-data:
   clickhouse-data:
   backup-staging:
+  symbols-data:

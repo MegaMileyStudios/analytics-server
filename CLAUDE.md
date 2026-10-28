@@ -46,6 +46,9 @@ docker compose up -d
 
 # Copy launch settings
 cp src/Properties/launchSettings.example.json src/Properties/launchSettings.json
+
+# Crash symbolication runs the LLVM 18 tools, which the API needs on its PATH
+sudo apt install llvm-18 binutils
 ```
 
 ### Development
@@ -101,6 +104,7 @@ The backend uses **feature-based organization** where each feature is self-conta
 - `Features/FeatureFlags/` - Feature flag system
 - `Features/Blob/` - Binary storage (avatars, etc.)
 - `Features/Cache/` - Caching layer
+- `Features/Symbolication/` - Debug symbol uploads and re-symbolication of crash reports (#67)
 
 Each feature typically contains:
 - API controllers (if exposed)
@@ -165,6 +169,9 @@ All environment variables are centralized in `EnvSettings.cs`. Key variables:
 **Email:**
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`
 
+**Crash symbolication:**
+- `SYMBOLS_PATH` - Folder for uploaded debug symbols (default `./symbols`, `/data/symbols` in the containers)
+
 **OAuth (optional):**
 - `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GITHUB_CLIENT_SECRET`
 - `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET`
@@ -178,6 +185,7 @@ The application uses ASP.NET Core rate limiting with policies:
 - `Stats` - 1000 requests per hour per IP
 - `EventIngestion` - 20 requests per second per IP
 - `FeatureFlags` - 10 requests per second per IP
+- `SymbolUpload` - 60 requests per hour per IP
 
 ### Background Jobs
 
@@ -188,6 +196,15 @@ Several `IHostedService` implementations handle periodic tasks:
 - `TrialExpiredCronJob` - Handles trial expirations
 - `TrialNotificationCronJob` - Sends trial reminders
 - `ResetOveruseCronJob` - Resets monthly usage counters
+- `SymbolicationWorker` - Symbolicates new crash reports, and reports whose missing symbols were uploaded later
+
+### Crash Symbolication
+
+Native crash reports and NativeAOT exception traces from the Godot SDK only contain module offsets. CI uploads each build's symbol archives (`.tar.gz`) to `POST /api/v0/symbols` with an upload key from the app settings' Debug Symbols tab. The store is shared by the whole server and matched by debug ID only (GNU build ID, PDB GUID + age, Mach-O UUID per architecture), plus `buildId` + RID for the game's C# frames. Results go to the ClickHouse table `error_symbolications`, next to the untouched `error_events` row.
+
+- Everything runs on Linux with `llvm-symbolizer-18`; Windows `.pdb` files get a generated stand-in PE (`PdbStub`), macOS uses the DWARF file inside the `.dSYM`.
+- The address and display rules per platform are documented in `Features/Symbolication/Engine/` (`AddressRules`, `FrameFormatter`) and in #67.
+- Test fixtures (`tests/Fixtures/Symbols`) are rebuilt with `build-fixtures.sh`, which needs `clang-18` and `lld-18` on top of `llvm-18`. Real reports from BallsyDrop are in `tests/Fixtures/Reports`.
 
 ## Development Notes
 

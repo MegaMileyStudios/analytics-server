@@ -87,6 +87,11 @@ public class EnvSettings
     // Variable Name: DISABLE_SIGNUPS (default: false)
     public bool SignupsDisabled { get; private set; }
 
+    // Folder where uploaded debug symbols are stored, used to symbolicate crash reports.
+    // E.g: /data/symbols
+    // Variable Name: SYMBOLS_PATH (default: ./symbols)
+    public string SymbolsDirectoryPath { get; private set; } = "";
+
     public static EnvSettings Load()
     {
         var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
@@ -122,7 +127,8 @@ public class EnvSettings
             EtcDirectoryPath = Directory.Exists("./etc") ? "./etc" : "../etc",
 
             ErrorQuotaEnabled = GetBool("ERROR_QUOTA_ENABLED"),
-            SignupsDisabled = GetBool("DISABLE_SIGNUPS")
+            SignupsDisabled = GetBool("DISABLE_SIGNUPS"),
+            SymbolsDirectoryPath = GetOrNull("SYMBOLS_PATH") is { Length: > 0 } symbolsPath ? symbolsPath : "./symbols"
         };
     }
 

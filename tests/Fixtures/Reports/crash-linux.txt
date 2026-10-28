@@ -1,0 +1,48 @@
+Build: 0-5-0-1793183957-Full_Release (linux-x64)
+handle_crash: Program crashed with signal 4
+Engine version: Godot Engine v4.7.3.rc.mono.custom_build (cc72c7b7f59b2f4be11d125a0c5d2fb2359ff225)
+Dumping the backtrace. Please include this when reporting the bug to the project developer.
+Load address: 65234551e000
+[1] 709218445330 (libc.so.6+45330) - libc.so.6(+0x45330) [0x709218445330]
+[2] 6523479a51a4 (main+24871a4) - BallsyDrop.x86_64(+0x24871a4) [0x6523479a51a4]
+[3] 708f066101b0 (BallsyDrop.so+8471b0) - BallsyDrop.so(+0x8471b0) [0x708f066101b0]
+[4] 708f06080ad4 (BallsyDrop.so+2b7ad4) - BallsyDrop.so(+0x2b7ad4) [0x708f06080ad4]
+[5] 708f05f3e284 (BallsyDrop.so+175284) - BallsyDrop.so(+0x175284) [0x708f05f3e284]
+[6] 708f0623cc48 (BallsyDrop.so+473c48) - BallsyDrop.so(+0x473c48) [0x708f0623cc48]
+[7] 708f0631cf6d (BallsyDrop.so+553f6d) - BallsyDrop.so(+0x553f6d) [0x708f0631cf6d]
+[8] 708f06340f46 (BallsyDrop.so+577f46) - BallsyDrop.so(+0x577f46) [0x708f06340f46]
+[9] 708f05f3f30f (BallsyDrop.so+17630f) - BallsyDrop.so(+0x17630f) [0x708f05f3f30f]
+[10] 708f0669590d (BallsyDrop.so+8cc90d) - BallsyDrop.so(+0x8cc90d) [0x708f0669590d]
+[11] 652346044f15 (main+b26f15) - BallsyDrop.x86_64(+0xb26f15) [0x652346044f15]
+[12] 65234666c0f0 (main+114e0f0) - BallsyDrop.x86_64(+0x114e0f0) [0x65234666c0f0]
+[13] 65234666c020 (main+114e020) - BallsyDrop.x86_64(+0x114e020) [0x65234666c020]
+[14] 652346686e68 (main+1168e68) - BallsyDrop.x86_64(+0x1168e68) [0x652346686e68]
+[15] 6523466abc7e (main+118dc7e) - BallsyDrop.x86_64(+0x118dc7e) [0x6523466abc7e]
+[16] 6523466ab971 (main+118d971) - BallsyDrop.x86_64(+0x118d971) [0x6523466ab971]
+[17] 6523466cb739 (main+11ad739) - BallsyDrop.x86_64(+0x11ad739) [0x6523466cb739]
+[18] 6523466debd9 (main+11c0bd9) - BallsyDrop.x86_64(+0x11c0bd9) [0x6523466debd9]
+[19] 6523477219b2 (main+22039b2) - BallsyDrop.x86_64(+0x22039b2) [0x6523477219b2]
+[20] 652345925c0b (main+407c0b) - BallsyDrop.x86_64(+0x407c0b) [0x652345925c0b]
+[21] 6523459259fc (main+4079fc) - BallsyDrop.x86_64(+0x4079fc) [0x6523459259fc]
+[22] 6523476f0862 (main+21d2862) - BallsyDrop.x86_64(+0x21d2862) [0x6523476f0862]
+[23] 6523476ed2d7 (main+21cf2d7) - BallsyDrop.x86_64(+0x21cf2d7) [0x6523476ed2d7]
+[24] 652345928b72 (main+40ab72) - BallsyDrop.x86_64(+0x40ab72) [0x652345928b72]
+[25] 652345907809 (main+3e9809) - BallsyDrop.x86_64(+0x3e9809) [0x652345907809]
+[26] 652345913aeb (main+3f5aeb) - BallsyDrop.x86_64(+0x3f5aeb) [0x652345913aeb]
+[27] 70921842a1ca (libc.so.6+2a1ca) - libc.so.6(+0x2a1ca) [0x70921842a1ca]
+[28] 70921842a28b (libc.so.6+2a28b) - libc.so.6(__libc_start_main+0x8b) [0x70921842a28b]
+[29] 652345900735 (main+3e2735) - BallsyDrop.x86_64(+0x3e2735) [0x652345900735]
+Modules:
+libc.so.6 (libc.so.6) - base: 709218400000, build ID: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65
+main (BallsyDrop.x86_64) - base: 65234551e000, build ID: 3128a633b44803a29dbeb2facfa7b764ec4ff026
+BallsyDrop.so (BallsyDrop.so) - base: 708f05dc9000, build ID: c4a9dc3c93f34990366feedf5dd3265549f37070
+-- END OF C++ BACKTRACE --
+C# backtrace (most recent call first):
+    [0] bool BallsyDrop.Analytics.ErrorReportingTest.Trigger(Godot.Key)
+    [1] void BallsyDrop.UI.Main.MainMenu._UnhandledInput(Godot.InputEvent)
+    [2] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [3] bool Godot.CanvasItem.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [4] bool Godot.Control.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [5] bool BallsyDrop.UI.Main.MainMenu.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [6]
+-- END OF C# BACKTRACE --

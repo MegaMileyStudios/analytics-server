@@ -1,0 +1,12 @@
+SELECT app_id as AppId,
+       error_id as ErrorId,
+       timestamp as Timestamp,
+       stack_trace as StackTrace
+FROM error_events
+WHERE (app_id, error_id) IN (
+    SELECT app_id, error_id
+    FROM error_symbolications FINAL
+    WHERE hasAny(missing_keys, ['{{keys}}'])
+)
+ORDER BY timestamp DESC
+LIMIT {{limit}}

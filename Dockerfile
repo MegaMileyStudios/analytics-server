@@ -27,6 +27,11 @@ RUN npm run build
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
+# The LLVM tools and readelf symbolicate crash reports with the uploaded debug symbols
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends llvm-18 binutils \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=server /work/publish .
 COPY --from=webapp /work/wwwroot ./wwwroot
 COPY LICENSE .

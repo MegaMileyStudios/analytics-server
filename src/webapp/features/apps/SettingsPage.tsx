@@ -4,6 +4,7 @@ import { useCurrentApp } from "@features/apps";
 import { Navigate } from "react-router-dom";
 import { AppSharing } from "./AppSharing";
 import { DangerZone } from "./DangerZone";
+import { DebugSymbols } from "./DebugSymbols";
 import { GeneralSettings } from "./GeneralSettings";
 import { OwnershipTransfer } from "./OwnershipTransfer";
 
@@ -22,6 +23,7 @@ export function Component() {
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="sharing">Sharing</TabsTrigger>
           <TabsTrigger value="ownership">Ownership Transfer</TabsTrigger>
+          <TabsTrigger value="symbols">Debug Symbols</TabsTrigger>
           <TabsTrigger value="danger">Danger Zone</TabsTrigger>
         </TabsList>
         <TabsContent value="general">
@@ -32,6 +34,9 @@ export function Component() {
         </TabsContent>
         <TabsContent value="ownership">
           <OwnershipTransfer app={app} />
+        </TabsContent>
+        <TabsContent value="symbols">
+          <DebugSymbols />
         </TabsContent>
         <TabsContent value="danger">
           <DangerZone app={app} />

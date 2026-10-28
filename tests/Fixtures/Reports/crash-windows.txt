@@ -1,0 +1,50 @@
+Build: 0-5-0-1793183957-Full_Release (win-x64)
+CrashHandlerException: Program crashed
+Engine version: Godot Engine v4.7.3.rc.mono.custom_build (cc72c7b7f59b2f4be11d125a0c5d2fb2359ff225)
+Dumping the backtrace. Please include this when reporting the bug to the project developer.
+Load address: 7ff6b9280000
+[0] 7ff6bb15e2b7 (main+1ede2b7) - <couldn't map PC to fn name>
+[1] 7ff8668015b1 (ballsydrop.dll+7015b1) - <couldn't map PC to fn name>
+[2] 7ff8662ab50d (ballsydrop.dll+1ab50d) - <couldn't map PC to fn name>
+[3] 7ff8661847a9 (ballsydrop.dll+847a9) - <couldn't map PC to fn name>
+[4] 7ff86644e9e4 (ballsydrop.dll+34e9e4) - <couldn't map PC to fn name>
+[5] 7ff866526d2c (ballsydrop.dll+426d2c) - <couldn't map PC to fn name>
+[6] 7ff8665497b4 (ballsydrop.dll+4497b4) - <couldn't map PC to fn name>
+[7] 7ff8661855a1 (ballsydrop.dll+855a1) - <couldn't map PC to fn name>
+[8] 7ff866889843 (ballsydrop.dll+789843) - <couldn't map PC to fn name>
+[9] 7ff6b99e64c8 (main+7664c8) - <couldn't map PC to fn name>
+[10] 7ff6b9f61265 (main+ce1265) - <couldn't map PC to fn name>
+[11] 7ff6b9f5d6b0 (main+cdd6b0) - <couldn't map PC to fn name>
+[12] 7ff6b9f45639 (main+cc5639) - <couldn't map PC to fn name>
+[13] 7ff6b9f88a64 (main+d08a64) - <couldn't map PC to fn name>
+[14] 7ff6b9f915dc (main+d115dc) - <couldn't map PC to fn name>
+[15] 7ff6b9faae0d (main+d2ae0d) - <couldn't map PC to fn name>
+[16] 7ff6b9f71f63 (main+cf1f63) - <couldn't map PC to fn name>
+[17] 7ff6b9fab6e1 (main+d2b6e1) - <couldn't map PC to fn name>
+[18] 7ff6bae26532 (main+1ba6532) - <couldn't map PC to fn name>
+[19] 7ff6b92d62ba (main+562ba) - <couldn't map PC to fn name>
+[20] 7ff6b92e3dbc (main+63dbc) - <couldn't map PC to fn name>
+[21] 7ff6baeb176c (main+1c3176c) - <couldn't map PC to fn name>
+[22] 7ff6baeb2739 (main+1c32739) - <couldn't map PC to fn name>
+[23] 7ff6b92f73a2 (main+773a2) - <couldn't map PC to fn name>
+[24] 7ff6b92d55d2 (main+555d2) - <couldn't map PC to fn name>
+[25] 7ff6b930ccde (main+8ccde) - <couldn't map PC to fn name>
+[26] 7ff6b930cb32 (main+8cb32) - <couldn't map PC to fn name>
+[27] 7ff6b930cd71 (main+8cd71) - <couldn't map PC to fn name>
+[28] 7ff6bb3a0509 (main+2120509) - <couldn't map PC to fn name>
+[29] 7ff6b92c3630 (main+43630) - <couldn't map PC to fn name>
+[30] 7ff988d6e957 (kernel32.dll+2e957) - <couldn't map PC to fn name>
+Modules:
+main (BallsyDrop.exe) - base: 7ff6b9280000, PDB: godot.windows.template_release.x86_64.mono.pdb, PDB ID: 61D3E1A84C9141A2A6365AFCA3C2BC751
+ballsydrop.dll (BallsyDrop.dll) - base: 7ff866100000, PDB: BallsyDrop.pdb, PDB ID: 5D208BED43854D76B91423A570D498C71
+kernel32.dll (KERNEL32.DLL) - base: 7ff988d40000, PDB: kernel32.pdb, PDB ID: 4E79D7A58C705A753A97CAF347FAF0C01
+-- END OF C++ BACKTRACE --
+C# backtrace (most recent call first):
+    [0] bool BallsyDrop.Analytics.ErrorReportingTest.Trigger(Godot.Key)
+    [1] void BallsyDrop.UI.Main.MainMenu._UnhandledInput(Godot.InputEvent)
+    [2] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [3] bool Godot.CanvasItem.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [4] bool Godot.Control.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [5] bool BallsyDrop.UI.Main.MainMenu.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&)
+    [6]
+-- END OF C# BACKTRACE --

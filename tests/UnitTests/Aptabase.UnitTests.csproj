@@ -25,4 +25,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Aptabase.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../Fixtures/**" CopyToOutputDirectory="PreserveNewest" LinkBase="Fixtures" />
+  </ItemGroup>
 </Project>

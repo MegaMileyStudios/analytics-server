@@ -22,6 +22,17 @@ function formatLargeNumber(num: number): string {
   return num.toFixed(0);
 }
 
+export function formatBytes(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
 export function formatNumber(value: number | undefined, format?: "number" | "duration"): string {
   if (format === "duration") {
     if (!value || value < 1) return "0s";
