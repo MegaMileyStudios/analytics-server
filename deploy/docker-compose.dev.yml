@@ -10,8 +10,9 @@ services:
     environment:
       SYMBOLS_PATH: /data/symbols
     volumes:
-      # Uploaded debug symbols, not part of the backups (the CI artifacts are the source)
-      - symbols-data:/data/symbols
+      # Uploaded debug symbols, on the dev server's long-term storage disk. Not part of the backups (the CI artifacts are
+      # the source). Override the folder with SYMBOLS_HOST_DIR in .env.
+      - ${SYMBOLS_HOST_DIR:-/mnt/storage/analytics/symbols}:/data/symbols
     depends_on:
       - postgres
       - clickhouse
@@ -54,4 +55,3 @@ volumes:
   postgres-data:
   clickhouse-data:
   backup-staging:
-  symbols-data:
